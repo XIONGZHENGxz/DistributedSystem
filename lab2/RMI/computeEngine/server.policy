@@ -1,0 +1,4 @@
+grant codeBase "file:/home/xz/learning/ds/DistributedSystem/lab2/computeEngine/" {
+	permission java.security.AllPermission;
+}
+
