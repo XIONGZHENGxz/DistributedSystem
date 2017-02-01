@@ -36,6 +36,12 @@ public class Client{
 		View view=this.Get();
 		return view.primary;
 	}
+
+	public static void main(String...args){
+		Client client=new Client(args[0],args[1],Integer.parseInt(args[2]));
+		client.Ping(0);
+	}
+
 }
 
 
