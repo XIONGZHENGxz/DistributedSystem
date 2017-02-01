@@ -11,7 +11,7 @@ public class ViewServer implements ViewService{
 		this.host=host;
 		try{
 			ViewServer vs=new ViewServer();
-			System.setProperty("java.rmi.server.host",this.host);
+			System.setProperty("java.rmi.server.hostname","192.168.245.146");
 			ViewService stub=(ViewService) UnicastRemoteObject.exportObject(vs,0);
 			Registry registry=LocateRegistry.createRegistry(this.port);
 			registry.rebind("view service",stub);

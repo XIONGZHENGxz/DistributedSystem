@@ -1,4 +1,6 @@
-public class View{
+import java.io.Serializable;
+public class View implements Serializable{
+	static final long serialVersionUID = 43L;
 	int viewNum;
 	String primary;
 	String backup;
