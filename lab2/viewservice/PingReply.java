@@ -1,10 +1,8 @@
 public class PingReply{
 	View view;
-	boolean error;
-	public PingReply(View v,boolean b){
+	boolean err;
+	public PingReply(View v,boolean f){
 		view=v;
-		error=b;
+		err=f;
 	}
-
 }
-

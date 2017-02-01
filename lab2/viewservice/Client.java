@@ -1,81 +1,43 @@
-import java.lang.ClassNotFoundException;
-import java.net.Socket;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.BufferedWriter;
-import java.io.ObjectInputStream;
-import java.net.Socket;
+import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
 public class Client{
-	Socket socket;
-	String name;//client host:port
+	String host;//client host:port
 	String server;//primary server host
 	int serverPort;//primary server port
-	BufferedWriter out;
-	ObjectInputStream in;
 	public Client(String name,String server,int port){
-		this.name=name;
+		this.host=name;
 		this.server=server;
 		this.serverPort=port;
 	}
 		
-	public void Call(String msg,String srv,int port){
+	public Object Call(String msg,Object args){
 		try{
-			this.socket=new Socket(srv,port);
-			out=new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-			in=new ObjectInputStream(socket.getInputStream());
-			out.write(msg);
-		} catch(Exception e){
+			Registry registry=LocateRegistry.getRegistry(this.server,this.serverPort);
+			ViewService stub=(ViewService) registry.lookup("view service");
+			if(msg.equals("ping")) return stub.Ping((PingArg)args);
+			else if(msg.equals("get")) return stub.Get();
+			else System.err.println("parameter error");
+		}catch(Exception e){
 			e.printStackTrace();
 		}
+		return null;
 	}
 
 	public PingReply Ping(int viewNum){
-		PingArgs arg=new PingArgs(this.name,viewNum);
-		this.Call("ping",this.server,this.serverPort);
-		View reply=null;
-		try{
-			reply=(View) in.readObject();
-		} catch(IOException | ClassNotFoundException e){
-			e.printStackTrace();
-		}
-		if(reply==null) return new PingReply(reply,true);
-		return new PingReply(reply,false);
+		PingArg arg=new PingArg(viewNum,this.host);
+		return (PingReply)this.Call("ping",arg);
 	}
 
-	public View get(){
-		this.Call("getView",this.server,this.serverPort);
-		View reply=null;
-		try{
-			reply=(View) in.readObject();
-		} catch(IOException | ClassNotFoundException e){
-			e.printStackTrace();
-		}
-		return reply;
+	public View Get(){
+		return (View)this.Call("get",null);
 	}
 
 	public String Primary(){
-		View view=this.get();
+		View view=this.Get();
 		return view.primary;
 	}
 }
 
-class PingArgs{
-	String hostPort;
-	int viewNum;
-	public PingArgs(String s,int v){
-		hostPort=s;
-		viewNum=v;
-	}
-}
-
-class PingReply{
-	View view;
-	boolean error;
-	public PingReply(View v,boolean b){
-		view=v;
-		error=b;
-	}
-}
 
 
 
