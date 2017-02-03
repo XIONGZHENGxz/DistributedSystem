@@ -1,8 +1,11 @@
+<<<<<<< HEAD
 import java.util.Set;
 import java.lang.Thread;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
+=======
+>>>>>>> parent of 91609cd... Merge branch 'master' of https://github.com/everornever/DistributedSystem
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
@@ -10,14 +13,20 @@ public class ViewServer implements ViewService{
 	String host;
 	int port;
 	View view;
-	Set<String> servers;
-	Map<String,Long> lastPingTime;
+	public ViewServer(){}
 	public ViewServer(String host,int port){
 		this.port=port;
 		this.host=host;
-		lastPingTime=new HashMap<>();
-		servers=new HashSet<>();
-		lastPingTime=new HashMap<>();
+		try{
+			ViewServer vs=new ViewServer();
+			System.setProperty("java.rmi.server.hostname","192.168.245.146");
+			ViewService stub=(ViewService) UnicastRemoteObject.exportObject(vs,0);
+			Registry registry=LocateRegistry.createRegistry(this.port);
+			registry.rebind("view service",stub);
+			System.out.println("view service is runing");
+		} catch(Exception e){
+			e.printStackTrace();
+		}
 	}
 
 		
@@ -25,23 +34,20 @@ public class ViewServer implements ViewService{
 		int viewNum=args.viewNum;
 		System.out.println("view number is:  "+viewNum);
 		String hostPort=args.hostPort;
-		servers.add(hostPort);
-		long pingTime=System.currentTimeMillis();
-		lastPingTime.put(hostPort,pingTime);
 		if(view==null){
-			view=new View(viewNum,hostPort,"");
+			view=new View(1,hostPort,"");
 			System.out.println("assign primary to "+hostPort);
 		}
-		if(viewNum==0) 
-			System.out.println(hostPort+"started!");
+		if(viewNum==0) System.out.println(hostPort+"crashed and restarted!");
 		PingReply pr=new PingReply(this.view,false);
 		return pr;
 	}
-	
+
 	public View Get(){
 		return view;	
 	}
 
+<<<<<<< HEAD
 	// server dead
 	public void DeclareDead(String server){
 		System.out.println(server+" is dead!");
@@ -61,12 +67,11 @@ public class ViewServer implements ViewService{
 		this.view.backup="";
 	}
 
+=======
+>>>>>>> parent of 91609cd... Merge branch 'master' of https://github.com/everornever/DistributedSystem
 	public static void main(String...args){
-		if(args.length<1){
-			System.out.println("args...host,port");
-			return;
-		}
 		ViewServer vs=new ViewServer(args[0],Integer.parseInt(args[1]));
+<<<<<<< HEAD
 		try{
 			System.setProperty("java.rmi.server.hostname","192.168.245.146");
 			ViewService stub=(ViewService) UnicastRemoteObject.exportObject(vs,0);
@@ -101,6 +106,8 @@ class MonitorPingThread extends Thread{
 				}
 			}
 		}
+=======
+>>>>>>> parent of 91609cd... Merge branch 'master' of https://github.com/everornever/DistributedSystem
 	}
 }
 		
