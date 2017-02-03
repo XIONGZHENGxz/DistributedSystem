@@ -28,12 +28,15 @@ public class ViewServer implements ViewService{
 		servers.add(hostPort);
 		long pingTime=System.currentTimeMillis();
 		lastPingTime.put(hostPort,pingTime);
-		if(view==null){
-			view=new View(viewNum,hostPort,"");
-			System.out.println("assign primary to "+hostPort);
-		}
-		if(viewNum==0) 
+		if(viewNum==0){
 			System.out.println(hostPort+"started!");
+			if(view!=null)
+				view.backup=hostPort;
+			else{ 
+				view=new View(viewNum,hostPort,"");
+				System.out.println("assign primary to "+hostPort);
+			}
+		}
 		PingReply pr=new PingReply(this.view,false);
 		return pr;
 	}
