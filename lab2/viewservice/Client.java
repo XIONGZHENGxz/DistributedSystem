@@ -38,8 +38,12 @@ public class Client{
 	}
 
 	public static void main(String...args){
+		if(args.length<1) System.out.println("args...host,server,port ");
 		Client client=new Client(args[0],args[1],Integer.parseInt(args[2]));
 		client.Ping(0);
+		View v=client.Get();
+		System.out.println(v.primary);
+		
 	}
 
 }
