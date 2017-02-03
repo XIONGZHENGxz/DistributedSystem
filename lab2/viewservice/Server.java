@@ -28,7 +28,7 @@ public class Server{
 	}
 
 	public PingReply Ping(int viewNum){
-		PingArg arg=new PingArg(viewNum++,this.host);
+		PingArg arg=new PingArg(viewNum,this.host);
 		return (PingReply)this.Call("ping",arg);
 	}
 
@@ -51,7 +51,8 @@ public class Server{
 			long currentTime=System.currentTimeMillis();
 			if(currentTime-server.lastPingTime>=Common.PingInterval){
 				server.lastPingTime=currentTime;
-				server.Ping(server.viewNum);
+				server.Ping(server.viewNum++);
+				System.out.println(server.Primary());
 			}
 		}
 	}
