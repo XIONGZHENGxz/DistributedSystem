@@ -1,4 +1,5 @@
 import java.util.Set;
+import java.lang.Thread;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,8 +20,10 @@ public class ViewServer implements ViewService{
 		lastPingTime=new HashMap<>();
 	}
 
+		
 	public PingReply Ping(PingArg args){
 		int viewNum=args.viewNum;
+		System.out.println("view number is:  "+viewNum);
 		String hostPort=args.hostPort;
 		servers.add(hostPort);
 		long pingTime=System.currentTimeMillis();
@@ -41,7 +44,9 @@ public class ViewServer implements ViewService{
 
 	// server dead
 	public void DeclareDead(String server){
+		System.out.println(server+" is dead!");
 		this.servers.remove(server);
+		this.lastPingTime.remove(server);
 	}
 
 	//primary is dead, assign new primary 
@@ -71,12 +76,24 @@ public class ViewServer implements ViewService{
 		} catch(Exception e){
 			e.printStackTrace();
 		}
+		Thread MonitorPing=new MonitorPingThread(vs);
+		MonitorPing.start();
+	}
+
+}
+class MonitorPingThread extends Thread{
+	ViewServer vs;
+	public MonitorPingThread(ViewServer vs){
+		this.vs=vs;
+	}
+	@Override
+	public void run(){
 		while(true){
 			for(String server:vs.lastPingTime.keySet()){
 				long timeNow=System.currentTimeMillis();
 				if((timeNow-vs.lastPingTime.get(server))>Common.DeadPings*Common.PingInterval){
-					System.out.println(server+"is dead!");
 					vs.DeclareDead(server);
+					if(vs.view==null) break;
 					if(vs.view.primary.equals(server)) 
 						vs.AssignNewPrimary();
 					else 
@@ -85,5 +102,6 @@ public class ViewServer implements ViewService{
 			}
 		}
 	}
-
 }
+		
+
