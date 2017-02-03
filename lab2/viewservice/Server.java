@@ -1,6 +1,5 @@
-import java.rmi.registry.Registry;
-import java.rmi.registry.LocateRegistry;
 public class Server{
+<<<<<<< HEAD
 	String host;//server host:port
 	String viewServer;//view service server host
 	int viewServerPort;//view service server port
@@ -57,8 +56,7 @@ public class Server{
 		}
 	}
 
+=======
+	
+>>>>>>> parent of 91609cd... Merge branch 'master' of https://github.com/everornever/DistributedSystem
 }
-
-
-
-

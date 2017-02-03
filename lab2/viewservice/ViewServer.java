@@ -15,7 +15,6 @@ public class ViewServer implements ViewService{
 	public ViewServer(String host,int port){
 		this.port=port;
 		this.host=host;
-		lastPingTime=new HashMap<>();
 		servers=new HashSet<>();
 		lastPingTime=new HashMap<>();
 	}
@@ -40,7 +39,7 @@ public class ViewServer implements ViewService{
 		PingReply pr=new PingReply(this.view,false);
 		return pr;
 	}
-	
+
 	public View Get(){
 		return view;	
 	}
@@ -63,12 +62,8 @@ public class ViewServer implements ViewService{
 		this.view.primary=prim;
 		this.view.backup="";
 	}
-
+	
 	public static void main(String...args){
-		if(args.length<1){
-			System.out.println("args...host,port");
-			return;
-		}
 		ViewServer vs=new ViewServer(args[0],Integer.parseInt(args[1]));
 		try{
 			System.setProperty("java.rmi.server.hostname","192.168.245.146");
