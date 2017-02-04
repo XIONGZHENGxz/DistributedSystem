@@ -37,6 +37,24 @@ public class Server implements ServerBase{
 		return pr;
 	}
 
+	//primary forward request to backup 
+	public void ForwardRequest(String request,Object arg){
+		while(true){
+			try{
+				Registry registry=LocateRegistry.getRegistry(this.view.backup,this.port);
+				ServerBase stub=(ServerBase) registry.lookup("key/value store");
+				if(request.equals("get")) return;
+				else if(request.equals("putappend")){
+					PutAppendReply par=stub.PutAppend((PutAppendArg)arg);
+					if(par.err==false)
+						break;
+				}
+			} catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
+	//when backup fails, the primary copy store to new backup
 	public void Copy(Map<String,String> map){
 		try{
 			Registry registry=LocateRegistry.getRegistry(this.view.backup,this.port);

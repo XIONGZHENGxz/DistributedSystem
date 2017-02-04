@@ -32,6 +32,7 @@ public class ViewServer implements ViewService{
 			if(view!=null){
 				if(!view.backup.equals("")) this.servers.add(hostPort);
 				else view.backup=hostPort;
+			}
 			else{ 
 				view=new View(viewNum,hostPort,"");
 				System.out.println("assign primary to "+hostPort);
@@ -41,17 +42,25 @@ public class ViewServer implements ViewService{
 		return pr;
 	}
 
-	public View Get(){
-		return view;	
-	}
-
 	// server dead
 	public void DeclareDead(String server){
 		System.out.println(server+" is dead!");
-		if(server.equals(this.view.primary)) AssignNewPrimary();
-		else if(server.equals(this.view.backup)) AssignNewBackup();
+		if(server.equals(this.view.primary)){
+			System.out.println("primary is dead");
+			this.AssignNewPrimary();
+		}
+		else if(server.equals(this.view.backup)) this.AssignNewBackup();
 		else this.servers.remove(server);
 		this.lastPingTime.remove(server);
+	}
+
+	//backup is dead, assign new backup
+	public void AssignNewBackup(){
+		if(this.servers.size()==0) this.view.backup="";
+		else{
+			this.view.backup=this.servers.iterator().next();
+			this.servers.remove(this.view.backup);
+		}
 	}
 
 	//primary is dead, assign new primary 
@@ -96,13 +105,15 @@ class MonitorPingThread extends Thread{
 	@Override
 	public void run(){
 		while(true){
+			String deadServer="";
 			for(String server:vs.lastPingTime.keySet()){
 				long timeNow=System.currentTimeMillis();
 				if((timeNow-vs.lastPingTime.get(server))>Common.DeadPings*Common.PingInterval){
-					vs.DeclareDead(server);
-					if(vs.view==null) break;
+					deadServer=server;
+					break;
 				}
 			}
+			if(!deadServer.equals("")) vs.DeclareDead(deadServer);
 		}
 	}
 }
