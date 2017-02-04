@@ -88,6 +88,7 @@ public class Server implements ServerBase{
 		if(pr.view.primary.equals(this.host)) this.isPrimary=true;
 		else this.isPrimary=false;
 		System.out.println(this.view.primary);
+		this.lastPingTime=System.currentTimeMillis();
 	}	
 		
 	public String Primary(){
