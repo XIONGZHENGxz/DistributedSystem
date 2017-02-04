@@ -1,4 +1,6 @@
-public class PutAppendArg<T>{
+import java.io.Serializable;
+public class PutAppendArg<T> implements Serializable{
+	static final long serialVersionUID = 39L;
 	T key;
 	T value;
 	String flag;

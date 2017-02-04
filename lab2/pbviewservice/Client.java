@@ -15,9 +15,9 @@ public class Client{
 	public Object Call(String msg,Object args){
 		try{
 			Registry registry=LocateRegistry.getRegistry(this.server,this.serverPort);
-			Server stub=(Server) registry.lookup("key/value store");
-			if(msg.equals("ping")) return stub.Ping((int)args);
-			else if(msg.equals("get")) return stub.Get((GetArg<String>)args);
+			ServerBase stub=(ServerBase) registry.lookup("key/value store");
+//			if(msg.equals("ping")) return stub.Get((int)args);
+			if(msg.equals("get")) return stub.Get((GetArg)args);
 			else if(msg.equals("putappend")) return stub.PutAppend((PutAppendArg<String>)args);
 			else System.err.println("parameter error");
 		}catch(Exception e){
@@ -34,7 +34,7 @@ public class Client{
 	}
 
 	public GetReply Get(String key){
-		GetArg<String> ga=new GetArg<String>(key);
+		GetArg ga=new GetArg(key);
 		return (GetReply<String>)this.Call("get",ga);
 	}
 	
@@ -59,9 +59,9 @@ public class Client{
 	public static void main(String...args){
 		if(args.length<1) System.out.println("args...host,server,port ");
 		Client client=new Client(args[0],args[1],Integer.parseInt(args[2]));
-		client.Ping(0);
-		System.out.println(client.primary);
-		
+		client.put("zheng","xiong");
+		System.out.println(client.Get("zheng"));
+		System.out.println(client.primary.equals(""));
 	}
 
 }
