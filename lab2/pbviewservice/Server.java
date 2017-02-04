@@ -13,6 +13,7 @@ public class Server implements ServerBase{
 	long lastPingTime;
 	Map<String,String> store;
 	boolean isPrimary;
+	View view;
 	public Server(String name,int myPort,String server,int port){
 		this.host=name;
 		this.port=myPort;
@@ -36,10 +37,29 @@ public class Server implements ServerBase{
 		return pr;
 	}
 
+	public void Copy(Map<String,String> map){
+		try{
+			Registry registry=LocateRegistry.getRegistry(this.view.backup,this.port);
+			ServerBase stub=(ServerBase) registry.lookup("key/value store");
+			stub.CopyStore(map);
+		} catch(Exception e){
+			e.printStackTrace();
+		}
+	}
 
+	public void CopyStore(Map<String,String> map){
+		this.store=map;
+	}
+
+	//ping view service periodically 
 	public PingReply Ping(int viewNum){
 		PingArg arg=new PingArg(viewNum,this.host);
-		return (PingReply)this.Call(arg);
+		PingReply pr=(PingReply) this.Call(arg);
+		if(this.isPrimary && !pr.view.backup.equals(this.view.backup)){
+			this.view=pr.view;
+			this.Copy(this.store);
+		}
+		return pr;
 	}
 	
 	//read value
@@ -64,6 +84,7 @@ public class Server implements ServerBase{
 	//ping the view service periodically 
 	public void tick(){
 		PingReply pr=this.Ping(this.viewNum++);
+		this.view=pr.view;
 		if(pr.view.primary.equals(this.host)) this.isPrimary=true;
 		else this.isPrimary=false;
 		System.out.println(this.isPrimary);
