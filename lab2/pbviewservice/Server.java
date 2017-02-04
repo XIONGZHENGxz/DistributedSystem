@@ -87,7 +87,7 @@ public class Server implements ServerBase{
 		this.view=pr.view;
 		if(pr.view.primary.equals(this.host)) this.isPrimary=true;
 		else this.isPrimary=false;
-		System.out.println(this.isPrimary);
+		System.out.println(this.view.primary);
 	}	
 		
 	public String Primary(){
