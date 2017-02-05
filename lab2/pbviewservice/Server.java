@@ -1,4 +1,5 @@
 import java.rmi.registry.Registry;
+import java.util.concurrent.Semaphore;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Map;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ public class Server implements ServerBase{
 	PrimaryMonitor pm;
 	Map<String,String> store;
 	boolean isPrimary;
+	Semaphore shut;
 	View view;
 	public Server(String name,int myPort,String server,int port){
 		this.host=name;
@@ -24,6 +26,7 @@ public class Server implements ServerBase{
 		lastPingTime=System.currentTimeMillis();
 		isPrimary=false;
 		store=new HashMap<>();
+		shut=new Semaphore(0);
 	}
 
 	//ping for client 
@@ -34,16 +37,14 @@ public class Server implements ServerBase{
 	//shut down itself, for test
 	public void Shutdown(){
 		System.out.println("somebody wants me to shutdown!");
-		try{
-			this.pm.wait();
-		}catch(InterruptedException e){
-			e.printStackTrace();
-		}
+		this.pm.wait=true;
 	}
 	
 	//tells the server to resume
 	public void Resume(){
-		this.pm.notify();
+		this.pm.wait=false;
+		this.viewNum=0;
+		this.pm.shut.release();
 	}
 
 	//RPC to view service
@@ -165,14 +166,24 @@ public class Server implements ServerBase{
 
 class PrimaryMonitor extends Thread{
 	Server server;
+	Semaphore shut;
+	boolean wait=false;
 	public PrimaryMonitor(Server s){
 		this.server=s;
+		this.shut=new Semaphore(0);
 	}
 
 	@Override 
 	public void run(){
 		while(true){
 			long currentTime=System.currentTimeMillis();
+			if(wait==true){
+				try{
+					this.shut.acquire();
+				} catch(InterruptedException e){
+					e.printStackTrace();
+				}
+			}
 			if(currentTime-server.lastPingTime>=Common.PingInterval){
 				server.tick();
 			}
