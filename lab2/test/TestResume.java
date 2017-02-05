@@ -5,7 +5,7 @@ import java.net.UnknownHostException;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.net.InetAddress;
-public class TestShutdown{
+public class TestResume{
 	Client client;
 	String ip;
 	String server;
@@ -18,23 +18,11 @@ public class TestShutdown{
 		ip="192.168.245.156";
 		client=new Client(ip,server,port);
 	}
-	
-
-	@Test
-	public void test1(){
-		try{
-			boolean b=false;	
-			b=client.Ping();
-			assertTrue(b==true);
-		} catch(Exception e){
-			e.printStackTrace();
-		}
-	}
 
 	@Test
 	public void test2(){
 		try{
-			client.shutdown();
+			client.resume();
 		} catch(Exception e){
 			e.printStackTrace();
 		}
