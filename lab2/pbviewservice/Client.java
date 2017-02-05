@@ -16,9 +16,11 @@ public class Client{
 		try{
 			Registry registry=LocateRegistry.getRegistry(this.server,this.serverPort);
 			ServerBase stub=(ServerBase) registry.lookup("key/value store");
-//			if(msg.equals("ping")) return stub.Get((int)args);
+			if(msg.equals("ping")) return stub.ClientPing();
 			if(msg.equals("get")) return stub.Get((GetArg)args);
 			else if(msg.equals("putappend")) return stub.PutAppend((PutAppendArg<String>)args);
+			else if(msg.equals("shutdown")) stub.Shutdown();
+			else if(msg.equals("resume")) stub.Resume();
 			else System.err.println("parameter error");
 		}catch(Exception e){
 			e.printStackTrace();
@@ -26,11 +28,8 @@ public class Client{
 		return null;
 	}
 
-	public PingReply Ping(int viewNum){
-		PingArg arg=new PingArg(viewNum,this.host);
-		PingReply pr=(PingReply) this.Call("ping",arg);
-		this.primary=pr.view.primary;
-		return pr;
+	public boolean Ping(){
+		return (boolean) this.Call("ping",null);
 	}
 
 	public GetReply Get(String key){
@@ -41,6 +40,16 @@ public class Client{
 	public PutAppendReply PutAppend(String key,String value,String flag){
 		PutAppendArg<String> paa=new PutAppendArg<String>(key,value,flag);
 		return (PutAppendReply)this.Call("putappend",paa);
+	}
+
+	//shutdown server
+	public void shutdown(){
+		this.Call("shutdown",null);
+	}
+
+	//resume server
+	public void resume(){
+		this.Call("resume",null);
 	}
 
 	public void put(String key,String value){
