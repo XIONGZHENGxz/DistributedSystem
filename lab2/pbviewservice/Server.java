@@ -26,8 +26,14 @@ public class Server implements ServerBase{
 		store=new HashMap<>();
 	}
 
+	//ping for client 
+	public boolean ClientPing(){
+		return true;
+	}
+
 	//shut down itself, for test
 	public void Shutdown(){
+		System.out.println("somebody wants me to shutdown!");
 		try{
 			this.pm.wait();
 		}catch(InterruptedException e){
