@@ -8,4 +8,5 @@ public interface ServerBase extends Remote{
 	public void ForwardRequest(String request,Object arg) throws RemoteException;
 	public void Shutdown() throws RemoteException;
 	public void Resume() throws RemoteException;
+	public void ClientPing() throws RemoteException;
 }
