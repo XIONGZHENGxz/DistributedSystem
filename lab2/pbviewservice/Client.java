@@ -55,16 +55,6 @@ public class Client{
 	public String Primary(){
 		return this.primary;
 	}
-
-	public static void main(String...args){
-		if(args.length<1) System.out.println("args...host,server,port ");
-		Client client=new Client(args[0],args[1],Integer.parseInt(args[2]));
-		client.put("zheng","xiong");
-		GetReply gr=client.Get("zheng");
-		System.out.println(gr.value);
-		System.out.println(client.primary.equals(""));
-	}
-
 }
 
 

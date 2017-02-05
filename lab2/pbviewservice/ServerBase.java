@@ -6,4 +6,6 @@ public interface ServerBase extends Remote{
 	public PutAppendReply PutAppend(PutAppendArg arg) throws RemoteException;
 	public void CopyStore(Map<String,String> map) throws RemoteException;
 	public void ForwardRequest(String request,Object arg) throws RemoteException;
+	public void Shutdown() throws RemoteException;
+	public void Resume() throws RemoteException;
 }

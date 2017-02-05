@@ -11,6 +11,7 @@ public class Server implements ServerBase{
 	int viewServerPort;//view service server port
 	int viewNum;
 	long lastPingTime;
+	PrimaryMonitor pm;
 	Map<String,String> store;
 	boolean isPrimary;
 	View view;
@@ -25,6 +26,21 @@ public class Server implements ServerBase{
 		store=new HashMap<>();
 	}
 
+	//shut down itself, for test
+	public void Shutdown(){
+		try{
+			this.pm.wait();
+		}catch(InterruptedException e){
+			e.printStackTrace();
+		}
+	}
+	
+	//tells the server to resume
+	public void Resume(){
+		this.pm.notify();
+	}
+
+	//RPC to view service
 	public Object Call(Object arg){
 		PingReply pr=null;
 		try{
@@ -114,6 +130,12 @@ public class Server implements ServerBase{
 		return pr.view.primary;
 	}
 
+	//initialize primary monitor and start
+	public void StartPrimaryMonitor(){
+		this.pm=new PrimaryMonitor(this);
+		this.pm.start();
+	}
+
 	public static void main(String...args){
 		if(args.length<1){
 			System.err.println("args...host,port,view server host,view server port");
@@ -129,9 +151,9 @@ public class Server implements ServerBase{
 		}catch(Exception e){
 			e.printStackTrace();
 		}
-		PrimaryMonitor pm=new PrimaryMonitor(server);
-		pm.start();
+		server.StartPrimaryMonitor();
 	}
+
 }
 
 
