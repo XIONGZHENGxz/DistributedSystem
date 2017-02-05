@@ -20,7 +20,7 @@ public class ViewServer implements ViewService{
 	}
 
 		
-	public PingReply Ping(PingArg args){
+	public synchronized PingReply Ping(PingArg args){
 		int viewNum=args.viewNum;
 		System.out.println("view number is:  "+viewNum);
 		String hostPort=args.hostPort;
@@ -82,9 +82,13 @@ public class ViewServer implements ViewService{
 	}
 	
 	public static void main(String...args){
+		if(args.length<1){
+			System.out.println("please specify host,port");
+			return;
+		}
 		ViewServer vs=new ViewServer(args[0],Integer.parseInt(args[1]));
 		try{
-			System.setProperty("java.rmi.server.hostname","192.168.245.146");
+			System.setProperty("java.rmi.server.hostname",vs.host);
 			ViewService stub=(ViewService) UnicastRemoteObject.exportObject(vs,0);
 			Registry registry=LocateRegistry.createRegistry(vs.port);
 			registry.rebind("view service",stub);

@@ -31,7 +31,7 @@ public class Server implements ServerBase{
 
 	//ping for client 
 	public boolean ClientPing(){
-		return true;
+		return this.isPrimary;
 	}
 
 	//shut down itself, for test

@@ -12,9 +12,9 @@ public class Client{
 		this.primary="";
 	}
 		
-	public Object Call(String msg,Object args){
+	public Object Call(String msg,Object args,String server,int port){
 		try{
-			Registry registry=LocateRegistry.getRegistry(this.server,this.serverPort);
+			Registry registry=LocateRegistry.getRegistry(server,port);
 			ServerBase stub=(ServerBase) registry.lookup("key/value store");
 			if(msg.equals("ping")) return stub.ClientPing();
 			if(msg.equals("get")) return stub.Get((GetArg)args);
@@ -28,35 +28,35 @@ public class Client{
 		return null;
 	}
 
-	public boolean Ping(){
-		return (boolean) this.Call("ping",null);
+	public boolean ping(String server,int port){
+		return (boolean) this.Call("ping",null,server,port);
 	}
 
-	public GetReply Get(String key){
+	public GetReply get(String key){
 		GetArg ga=new GetArg(key);
-		return (GetReply<String>)this.Call("get",ga);
+		return (GetReply<String>)this.Call("get",ga,this.server,this.serverPort);
 	}
 	
 	public PutAppendReply PutAppend(String key,String value,String flag){
 		PutAppendArg<String> paa=new PutAppendArg<String>(key,value,flag);
-		return (PutAppendReply)this.Call("putappend",paa);
+		return (PutAppendReply)this.Call("putappend",paa,this.server,this.serverPort);
 	}
 
 	//shutdown server
-	public void shutdown(){
-		this.Call("shutdown",null);
+	public void shutdown(String server,int port){
+		this.Call("shutdown",null,server,port);
 	}
 
 	//resume server
-	public void resume(){
-		this.Call("resume",null);
+	public void resume(String server,int port){
+		this.Call("resume",null,server,port);
 	}
 
 	public void put(String key,String value){
 		this.PutAppend(key,value,"put");
 	}
 
-	public void Append(String key,String value){
+	public void append(String key,String value){
 		this.PutAppend(key,value,"append");
 	}
 
