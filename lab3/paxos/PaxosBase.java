@@ -3,6 +3,6 @@ import java.rmi.RemoteException;
 public interface PaxosBase extends Remote{
 	public PaxosReply ProcessPrepare(PaxosArg arg) throws RemoteException;
 	public PaxosReply ProcessAccept(PaxosArg arg) throws RemoteException;
-	public PaxosReply ProcessDecision(PaxosArg arg) throws RemoteException;
+	public void ProcessDecision(PaxosArg arg) throws RemoteException;
 }
 	

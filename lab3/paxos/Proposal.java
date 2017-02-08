@@ -1,8 +1,9 @@
 public class Proposal{
-	String proposalNum;
+	int pNumber;
 	Object pValue;
-	protected Proposal(String number, Object value){
-		proposalNum=number;
+	protected Proposal(){}
+	protected Proposal(int number, Object value){
+		pNumber=number;
 		pValue=value;
 	}
 }
