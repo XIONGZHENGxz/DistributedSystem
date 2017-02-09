@@ -1,3 +1,4 @@
+package paxos;
 public class PaxosReply{
 	String status;
 	int pNumber;//highest number seen so far

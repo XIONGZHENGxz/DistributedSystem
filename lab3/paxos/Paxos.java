@@ -1,15 +1,18 @@
+package paxos;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.server.UnicastRemoteObject;
+import java.rmi.RemoteException;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Random;
 public class Paxos implements PaxosBase{
 	String[] peers;
 	int me;
-	private static final int port=1099;
+	private static final int port=1100;
 	private Random rand;
 	Map<Integer,Instance> map;	
 	ReentrantLock lock;
@@ -21,6 +24,14 @@ public class Paxos implements PaxosBase{
 		map=new HashMap<>();
 		lock=new ReentrantLock();
 		this.dones=new int[this.peers.length];
+		try{
+			Registry registry=LocateRegistry.getRegistry(this.peers[this.me],port);
+			PaxosBase stub=(PaxosBase) UnicastRemoteObject.exportObject(this,0);
+			registry.rebind("paxos",stub);
+		} catch(RemoteException e){
+			e.printStackTrace();
+		}
+		System.out.println("paxos registered...");
 	}
 
 	//send all remote procedure calls
@@ -167,13 +178,14 @@ public class Paxos implements PaxosBase{
 	public void ProcessDecision(PaxosArg arg){
 		lock.lock();
 		this.MakeDecision(arg.seq,new Proposal(arg.pNumber,arg.pValue));
+		this.dones[arg.me]=arg.done;
 		lock.unlock();
 	}
 
 	//broacase decision
 	public void BroadCastDecision(int seq,Proposal p){
 		for(int i=0;i<this.peers.length;i++){
-			PaxosArg arg=new PaxosArg(seq,p.pNumber,p.pValue,this.me,0);
+			PaxosArg arg=new PaxosArg(seq,p.pNumber,p.pValue,this.me,seq);
 			if(i==this.me){
 				this.ProcessDecision(arg);
 			}else{
@@ -233,7 +245,15 @@ public class Paxos implements PaxosBase{
 
 	//application will forget sequence that is smaller than Min()
 	public int Min(){
-		return 0;
+		lock.lock();
+		int min=Integer.MAX_VALUE;
+		for(int done:this.dones){
+			if(min>done) min=done;
+		}
+		for(int seq:this.map.keySet()){
+			if(seq<=min && this.map.get(seq).status==Status.DECIDED) this.map.remove(seq);
+		}
+		return min+1;
 	}
 	
 	//the status of agreement of this peer

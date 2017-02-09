@@ -1,3 +1,4 @@
+package paxos;
 public class PaxosArg{
 	int seq;
 	int pNumber;

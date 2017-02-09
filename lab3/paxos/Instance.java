@@ -1,3 +1,4 @@
+package paxos;
 public class Instance{
 	int seq;//instance id
 	Object value;

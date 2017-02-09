@@ -1,3 +1,4 @@
+package paxos;
 public class Proposal{
 	int pNumber;
 	Object pValue;
