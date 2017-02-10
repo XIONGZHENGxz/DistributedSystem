@@ -3,6 +3,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
+import java.rmi.NotBoundException;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
@@ -11,27 +12,39 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.Random;
 public class Paxos implements PaxosBase{
 	String[] peers;
+	int[] ports;
 	int me;
-	private static final int port=1100;
 	private Random rand;
 	Map<Integer,Instance> map;	
 	ReentrantLock lock;
 	private int[] dones;
-	public Paxos(int me,String[] peers){
+	Clock clock;
+	PaxosBase stub;
+	Registry registry;
+	public Paxos(int me,String[] peers,int[] ports){
 		this.me=me;
+		clock=Clock.getInstance();
 		this.peers=peers;
+		this.ports=ports;
 		this.rand=new Random();
 		map=new HashMap<>();
 		lock=new ReentrantLock();
 		this.dones=new int[this.peers.length];
+		for(int i=0;i<this.dones.length;i++) this.dones[i]=Integer.MAX_VALUE;
 		try{
-			Registry registry=LocateRegistry.getRegistry(this.peers[this.me],port);
-			PaxosBase stub=(PaxosBase) UnicastRemoteObject.exportObject(this,0);
+			System.setProperty("java.rmi.server.hostname",this.peers[this.me]);
+			registry=LocateRegistry.createRegistry(this.ports[this.me]);
+			stub=(PaxosBase) UnicastRemoteObject.exportObject(this,0);
 			registry.rebind("paxos",stub);
 		} catch(RemoteException e){
 			e.printStackTrace();
 		}
 		System.out.println("paxos registered...");
+	}
+	
+	//return instances for test
+	public Map<Integer,Instance> getMap(){
+		return this.map;
 	}
 
 	//send all remote procedure calls
@@ -39,7 +52,7 @@ public class Paxos implements PaxosBase{
 		PaxosReply callReply=null;
 		PaxosBase stub=null;
 		try{
-			Registry registry=LocateRegistry.getRegistry(peers[arg.me],port);
+			Registry registry=LocateRegistry.getRegistry(peers[arg.me],this.ports[this.me]);
 			stub=(PaxosBase) registry.lookup("paxos");
 			if(rmiName.equals("prepare"))
 				callReply=stub.ProcessPrepare(arg);
@@ -65,8 +78,9 @@ public class Paxos implements PaxosBase{
 		this.lock.lock();
 		PaxosReply reply=new PaxosReply();
 		int seq=arg.seq;
-		if(!this.map.containsKey(seq)) this.map.put(seq,new Instance(seq,null,Status.PENDING,0,new Proposal(0,null)));
+		if(!this.map.containsKey(seq)) this.map.put(seq,makeInstance(seq,null));
 		Instance inst=this.map.get(seq);
+		System.out.println("prepare...."+arg.pNumber+"  "+inst.pNumber);
 		if(arg.pNumber>inst.pNumber){
 			reply.status="ok";
 			inst.pNumber=arg.pNumber;
@@ -83,9 +97,10 @@ public class Paxos implements PaxosBase{
 	//process accept rpc
 	public PaxosReply ProcessAccept(PaxosArg arg){
 		lock.lock();
-		PaxosReply reply=null;
+		PaxosReply reply=new PaxosReply();
 		if(!this.map.containsKey(arg.seq)) this.map.put(arg.seq,makeInstance(arg.seq,null));
 		Instance inst=this.map.get(arg.seq);
+		System.out.println(arg.pNumber+"  "+inst.pNumber);
 		if(arg.pNumber>=inst.pNumber){
 			inst.pNumber=arg.pNumber;
 			inst.accepted=new Proposal(arg.pNumber,arg.pValue);
@@ -101,14 +116,18 @@ public class Paxos implements PaxosBase{
 		int size=len/2+1;
 		Set<Integer> targets=new HashSet<>();
 		String[] acceptors=new String[size];
-		size=size+rand.nextInt(len-size);
+		size=size+rand.nextInt(len-size+1);
 		for(int i=0;i<size;i++){
+			int t=-1;
 			while(true){
-				int t=rand.nextInt(len);
+			    t=rand.nextInt(len);
 				if(!targets.add(t)) continue;
-				acceptors[i]=this.peers[t];
+				break;
 			}
+			targets.add(t);
+			acceptors[i]=this.peers[t];
 		}
+		System.out.println(acceptors[0]);
 		return acceptors;
 	}
 
@@ -119,18 +138,26 @@ public class Paxos implements PaxosBase{
 	}
 	//make proposal number
 	public int makepNum(){
-		return 0;
+		lock.lock();
+		int num=-1;
+		num=clock.getCount();
+		clock.increament();
+		lock.unlock();
+		return num;
 	}
+
 	//broadcast prepare
-	public boolean BroadcastPrepare(int seq,Object value,Proposal p,String[] acceptors){
+	public Proposal BroadcastPrepare(int seq,Object value,String[] acceptors){
 		int pNumber=this.makepNum();
 		int accNum=0;
+		System.out.println("initial p number..."+pNumber);
 		int maxpNum=0;
 		Object maxValue=value;
 		for(String acc:acceptors){
 			PaxosReply pr=this.prepare(this.me,seq,acc,pNumber);
+			System.out.println("prepare status..."+pr.status);
 			if(pr==null)
-				return false;
+				return new Proposal(pNumber,maxValue,false);
 			if(pr.status=="ok"){
 				accNum++;
 				if(pr.pNumber>maxpNum){
@@ -139,14 +166,16 @@ public class Paxos implements PaxosBase{
 				}
 			}
 		}
-		p=new Proposal(pNumber,maxValue);
-		return accNum>this.peers.length/2;
+		System.out.println(maxValue.toString());
+		boolean bool=accNum>this.peers.length/2?true:false;
+		return new Proposal(pNumber,maxValue,bool);
 	}
 
 	//Accept
 	public PaxosReply accept(PaxosArg arg){
-		PaxosReply pr=null;
+		PaxosReply pr=new PaxosReply();
 		if(arg.me==this.me){
+			System.out.println("its me");
 			pr=this.ProcessAccept(arg);
 		}else{
 			pr=this.call("accept",arg);
@@ -157,9 +186,11 @@ public class Paxos implements PaxosBase{
 	//broadcast accept
 	public boolean BroadcastAccept(int seq,String[] acceptors,Proposal p){
 		PaxosReply pr=null;
+		System.out.println("broadcast accept..."+p.pNumber+"..."+p.pValue);
 		int accNum=0;
 		for(String acc:acceptors){
 			pr=accept(new PaxosArg(seq,p.pNumber,p.pValue,this.me,0));
+			System.out.println("status..."+pr.status);
 			if(pr!=null && pr.status.equals("ok"))
 				accNum++;
 		}
@@ -192,7 +223,7 @@ public class Paxos implements PaxosBase{
 				this.call("decision",arg);
 			}
 		}
-
+		clock.reset();
 	}
 
 
@@ -217,11 +248,17 @@ public class Paxos implements PaxosBase{
 			}catch(InterruptedException e){
 				e.printStackTrace();
 			}
+			System.out.println("waiting to decide....");
 			String[] acceptors=this.SelectMajority();
-			Proposal p=new Proposal();
-			boolean ok=this.BroadcastPrepare(seq,v,p,acceptors);
-			if(ok) ok=this.BroadcastAccept(seq,acceptors,p);
+			Proposal p=this.BroadcastPrepare(seq,v,acceptors);
+			System.out.println("proposal number..."+p.pNumber);
+			boolean ok=p.bool;
 			if(ok){
+				System.out.println("prepare ok...");
+				ok=this.BroadcastAccept(seq,acceptors,p);
+			}
+			if(ok){
+				System.out.println("accept ok...");
 				this.BroadCastDecision(seq,p);
 				break;
 			}
@@ -253,6 +290,7 @@ public class Paxos implements PaxosBase{
 		for(int seq:this.map.keySet()){
 			if(seq<=min && this.map.get(seq).status==Status.DECIDED) this.map.remove(seq);
 		}
+		lock.unlock();
 		return min+1;
 	}
 	
@@ -270,12 +308,31 @@ public class Paxos implements PaxosBase{
 		lock.unlock();
 		return this.map.get(seq).status;
 	}
+	
+	//clean up shutdown registry
+	public void cleanup(){
+		try{
+			if(registry!=null) UnicastRemoteObject.unexportObject(registry,true);
+		} catch(RemoteException e){
+			e.printStackTrace();
+		}
+	}
 
 	//shutdown itself
 	public void shutdown(){
+		try{	
+			registry.unbind("paxos");
+		} catch(RemoteException | NotBoundException e){
+			e.printStackTrace();
+		}
 	}
 
 	//restart
 	public void resume(){
+		try{	
+		registry.rebind("paxos",stub);
+		} catch(RemoteException e ){
+			e.printStackTrace();
+		}
 	}
 }

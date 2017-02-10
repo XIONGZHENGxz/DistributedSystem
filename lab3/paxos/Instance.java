@@ -12,4 +12,15 @@ public class Instance{
 		this.pNumber=pNum;
 		this.accepted=p;
 	}
+	
+
+	//return status
+	public Status getStatus(){
+		return this.status;
+	}
+	 
+	//return proposal
+	public Proposal getProposal(){
+		return this.accepted;
+	}
 }
