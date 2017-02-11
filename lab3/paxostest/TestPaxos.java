@@ -1,5 +1,8 @@
 import org.junit.Test;
 import org.junit.Before;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import paxos.*;
 import static org.junit.Assert.*;
 public class TestPaxos{
@@ -9,7 +12,7 @@ public class TestPaxos{
 	String[] peers;
 	Paxos[] pax;
 	int[] ports;
-
+	ExecutorService es = Executors.newFixedThreadPool(10);
 	//init paxos
 	public void initPaxos(int num){
 		this.num=num;
@@ -21,10 +24,10 @@ public class TestPaxos{
 			peers[i]=host;
 		}
 		for(int i=0;i<num;i++){
-			pax[i]=new Paxos(i,peers,ports);
+			pax[i]=new Paxos(i,this.peers,this.ports);
 		}
 	}
-	
+		
 	public  int numOfDecided(int totalNum,int seq){
 		Object value=new Object();
 		Status s=null;
@@ -77,6 +80,7 @@ public class TestPaxos{
 		int n=1;
 		this.initPaxos(n);
 		pax[0].start(0,"hello");
+		pax[0].run();
 		assertTrue(waitDecide(n,0));
 		this.cleanup();
 	}
@@ -87,8 +91,39 @@ public class TestPaxos{
 		int n=2;
 		this.initPaxos(n);
 		pax[0].start(0,"hello");
-		pax[1].start(0,"ming");
+		pax[1].start(0,"lang");
+		for(int i=0;i<n;i++) es.execute(pax[i]);
+		boolean ok=false;
+		try{
+			es.shutdown();
+			ok=es.awaitTermination(1,TimeUnit.MINUTES);
+		}catch(InterruptedException e){
+			e.printStackTrace();
+		}
+		assertTrue(ok);
 		assertTrue(waitDecide(n,0));
 		this.cleanup();
-	}	
+	}
+	
+	@Test
+	public void test3(){
+		int n=5;
+		this.initPaxos(n);
+		pax[0].start(0,"hello");
+		pax[1].start(0,"lang");
+		pax[2].start(0,"zheng");
+		pax[3].start(1,"xiong");
+		pax[4].start(1,"xz");
+		for(int i=0;i<n;i++) es.execute(pax[i]);
+		boolean ok=false;
+		try{
+			es.shutdown();
+			ok=es.awaitTermination(1,TimeUnit.MINUTES);
+		}catch(InterruptedException e){
+			e.printStackTrace();
+		}
+		assertTrue(ok);
+		assertTrue(waitDecide(n,0));
+		this.cleanup();
+	}		
 }
