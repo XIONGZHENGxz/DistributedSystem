@@ -1,5 +1,7 @@
 package uta.shan.paxos;
-public class PaxosArg{
+import java.io.Serializable;
+public class PaxosArg implements Serializable{
+	final static long serialVersionUID=1L;
 	int seq;
 	int pNumber;
 	Object pValue;

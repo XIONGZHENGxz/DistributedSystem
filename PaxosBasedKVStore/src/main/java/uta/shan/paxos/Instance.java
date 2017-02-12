@@ -18,7 +18,12 @@ public class Instance{
 	public Status getStatus(){
 		return this.status;
 	}
-	 
+	
+	//return value
+	public Object getValue(){
+		return this.value;
+	}
+
 	//return proposal
 	public Proposal getProposal(){
 		return this.accepted;

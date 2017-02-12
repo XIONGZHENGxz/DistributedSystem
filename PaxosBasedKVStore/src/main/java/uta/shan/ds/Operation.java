@@ -1,16 +1,18 @@
 package uta.shan.ds;
 import java.io.Serializable;
 public class Operation implements Serializable{
-	int seq;//sequence number 
-	int id;//0 is get, 1 is put 2 is append;
+	String type;//operation type,get,put,append
 	String key;
 	String value;
+	String client;
+	String rid;
 	public Operation(){}
-	public Operation(String key,String value,int id,int seq){
-		this.id=id;
+	public Operation(String rid,String key,String value,String t,String client){
+		this.rid=rid;
+		this.type=t;
 		this.key=key;
 		this.value=value;
-		this.seq=seq;
+		this.client=client;
 	}
 
 }

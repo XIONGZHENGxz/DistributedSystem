@@ -49,13 +49,19 @@ public class Paxos implements PaxosBase,Runnable{
 	public Map<Integer,Instance> getMap(){
 		return this.map;
 	}
+	
+	//get value
+	public Object getOperation(int seq){
+		return this.map.get(seq).getValue();
+	}
 
 	//send all remote procedure calls
 	public PaxosReply call(String rmiName,PaxosArg arg){
+		System.out.println("remote call "+rmiName);
 		PaxosReply callReply=null;
 		PaxosBase stub=null;
 		try{
-			Registry registry=LocateRegistry.getRegistry(peers[arg.me],this.ports[this.me]);
+			Registry registry=LocateRegistry.getRegistry(peers[arg.me],this.ports[arg.me]);
 			stub=(PaxosBase) registry.lookup("paxos");
 			if(rmiName.equals("prepare"))
 				callReply=stub.ProcessPrepare(arg);
@@ -73,7 +79,7 @@ public class Paxos implements PaxosBase,Runnable{
 
 	// make instance
 	public Instance makeInstance(int seq,Object v){
-		return new Instance(seq,v,Status.PENDING,0,new Proposal());
+		return new Instance(seq,v,Status.PENDING,0,null);
 	}
 
 	//process prepare rpc
@@ -86,11 +92,12 @@ public class Paxos implements PaxosBase,Runnable{
 		System.out.println("prepare...."+arg.pNumber+"  "+inst.pNumber);
 		if(arg.pNumber>inst.pNumber){
 			reply.status="ok";
-			inst.pNumber=arg.pNumber;
 			if(inst.accepted!=null){
+				System.out.println("there exist accepted...");
 				reply.pNumber=inst.accepted.pNumber;
 				reply.pValue=inst.accepted.pValue;
 			}
+			inst.pNumber=arg.pNumber;
 			this.map.put(seq,inst);
 		}
 		this.lock.unlock();
@@ -114,12 +121,12 @@ public class Paxos implements PaxosBase,Runnable{
 	}
 	
 	//select majority
-	public String[] SelectMajority(){
+	public int[] SelectMajority(){
 		int len=this.peers.length;
 		int size=len/2+1;
 		Set<Integer> targets=new HashSet<>();
-		String[] acceptors=new String[size];
 		size=size+rand.nextInt(len-size+1);
+		int[] acceptors=new int[size];
 		for(int i=0;i<size;i++){
 			int t=-1;
 			while(true){
@@ -128,9 +135,8 @@ public class Paxos implements PaxosBase,Runnable{
 				break;
 			}
 			targets.add(t);
-			acceptors[i]=this.peers[t];
+			acceptors[i]=t;
 		}
-		System.out.println(acceptors[0]);
 		return acceptors;
 	}
 
@@ -150,18 +156,18 @@ public class Paxos implements PaxosBase,Runnable{
 	}
 
 	//broadcast prepare
-	public Proposal BroadcastPrepare(int seq,Object value,String[] acceptors){
+	public Proposal BroadcastPrepare(int seq,Object value,int[] acceptors){
+		System.out.println("i am thread "+Thread.currentThread().getName());
 		int pNumber=this.makepNum();
 		int accNum=0;
 		System.out.println("initial p number..."+pNumber);
 		int maxpNum=0;
 		Object maxValue=value;
-		for(String acc:acceptors){
-			PaxosReply pr=this.prepare(this.me,seq,acc,pNumber);
-			System.out.println("prepare status..."+pr.status);
+		for(int acc:acceptors){
+			PaxosReply pr=this.prepare(seq,acc,pNumber);
 			if(pr==null)
 				return new Proposal(pNumber,maxValue,false);
-			if(pr.status=="ok"){
+			if(pr.status!=null && pr.status.equals("ok")){
 				accNum++;
 				if(pr.pNumber>maxpNum){
 					maxpNum=pr.pNumber;
@@ -169,8 +175,8 @@ public class Paxos implements PaxosBase,Runnable{
 				}
 			}
 		}
-		System.out.println(maxValue.toString());
-		boolean bool=accNum>this.peers.length/2?true:false;
+		System.out.println("accept number..."+accNum);
+		boolean bool=(accNum>this.peers.length/2)?true:false ;
 		return new Proposal(pNumber,maxValue,bool);
 	}
 
@@ -187,14 +193,14 @@ public class Paxos implements PaxosBase,Runnable{
 	}
 
 	//broadcast accept
-	public boolean BroadcastAccept(int seq,String[] acceptors,Proposal p){
+	public boolean BroadcastAccept(int seq,int[] acceptors,Proposal p){
 		PaxosReply pr=null;
 		System.out.println("broadcast accept..."+p.pNumber+"..."+p.pValue);
 		int accNum=0;
-		for(String acc:acceptors){
-			pr=accept(new PaxosArg(seq,p.pNumber,p.pValue,this.me,0));
+		for(int acc:acceptors){
+			pr=accept(new PaxosArg(seq,p.pNumber,p.pValue,acc,0));
 			System.out.println("status..."+pr.status);
-			if(pr!=null && pr.status.equals("ok"))
+			if(pr!=null && pr.status !=null && pr.status.equals("ok"))
 				accNum++;
 		}
 		return accNum>this.peers.length/2;
@@ -219,24 +225,29 @@ public class Paxos implements PaxosBase,Runnable{
 	//broacase decision
 	public void BroadCastDecision(int seq,Proposal p){
 		for(int i=0;i<this.peers.length;i++){
-			PaxosArg arg=new PaxosArg(seq,p.pNumber,p.pValue,this.me,seq);
+			System.out.println("making decision...");
+			PaxosArg arg=new PaxosArg(seq,p.pNumber,p.pValue,i,seq);
 			if(i==this.me){
 				this.ProcessDecision(arg);
+				System.out.println("i am...");
 			}else{
 				this.call("decision",arg);
 			}
 		}
+		System.out.println("decision done....");
 		clock.reset();
 	}
 
 
 	//prepare a proposal
-	public PaxosReply prepare(int id,int seq,String peer,int pNum){
+	public PaxosReply prepare(int seq,int peer,int pNum){
 		PaxosReply reply=null;
-		PaxosArg arg=new PaxosArg(seq,pNum,null,this.me,0);
-		if(id==this.me){
+		PaxosArg arg=new PaxosArg(seq,pNum,null,peer,0);
+		if(peer==this.me){
+			System.out.println("its me");
 			reply=this.ProcessPrepare(arg);
 		} else{
+			System.out.println("its not me");
 			reply=this.call("prepare",arg);
 		}
 		return reply;
@@ -257,10 +268,12 @@ public class Paxos implements PaxosBase,Runnable{
 			}catch(InterruptedException e){
 				e.printStackTrace();
 			}
+			if(this.map.containsKey(seq) && this.map.get(seq).getStatus().equals(Status.DECIDED)) return;
 			System.out.println("waiting to decide....");
-			String[] acceptors=this.SelectMajority();
+			int[] acceptors=this.SelectMajority();
+			for(int i=0;i<acceptors.length;i++) System.out.println(acceptors[i]);
 			Proposal p=this.BroadcastPrepare(this.seq,this.value,acceptors);
-			System.out.println("proposal number..."+p.pNumber);
+			System.out.println("proposal number...value"+p.pNumber+"..."+p.pValue);
 			boolean ok=p.bool;
 			if(ok){
 				System.out.println("prepare ok...");
@@ -269,7 +282,7 @@ public class Paxos implements PaxosBase,Runnable{
 			if(ok){
 				System.out.println("accept ok...");
 				this.BroadCastDecision(seq,p);
-				break;
+				return;
 			}
 		}
 	}

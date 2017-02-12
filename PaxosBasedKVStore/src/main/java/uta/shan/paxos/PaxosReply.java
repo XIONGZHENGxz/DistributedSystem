@@ -1,5 +1,7 @@
 package uta.shan.paxos;
-public class PaxosReply{
+import java.io.Serializable;
+public class PaxosReply implements Serializable{
+	static final long serialVersionUID=2L;
 	String status;
 	int pNumber;//highest number seen so far
 	Object pValue;//highest proposal value seen so far

@@ -1,12 +1,14 @@
 package uta.shan.ds;
+import java.util.Random;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 public class Client{
-	String host;//client host:port
-	String[] servers;
+	public String[] servers;
 	int[] serverPorts;
+	Random rand;
+	public String me;
 	public Client(String name,String[] servers,int[] ports){
-		this.host=name;
+		this.me=name;
 		this.servers=servers;
 		this.serverPorts=ports;
 	}
@@ -34,7 +36,7 @@ public class Client{
 
 	//get
 	public String get(String key){
-		GetArg ga=new GetArg(key);
+		GetArg ga=new GetArg(key,this.makeRequestId(),this.me);
 		GetReply gr=null;
 		int i=0;
 		for(;i<this.servers.length;i++){
@@ -47,7 +49,7 @@ public class Client{
 	
 	//shared by put and append
 	public PutAppendReply PutAppend(String key,String value,String server,int port,String flag){
-		PutAppendArg paa=new PutAppendArg(key,value,flag);
+		PutAppendArg paa=new PutAppendArg(this.me,key,value,flag,this.makeRequestId());
 		return (PutAppendReply)this.Call("putappend",paa,server,port);
 	}
 
