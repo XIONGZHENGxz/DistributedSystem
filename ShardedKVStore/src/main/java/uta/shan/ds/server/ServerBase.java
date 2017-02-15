@@ -13,4 +13,5 @@ public interface ServerBase extends Remote{
 	public PutAppendReply PutAppend(PutAppendArg arg) throws  RemoteException;
 	public void shutdown() throws RemoteException;
 	public void resume() throws RemoteException;
+	public FetchReply fetch(FetchArg arg) throws RemoteException;
 }

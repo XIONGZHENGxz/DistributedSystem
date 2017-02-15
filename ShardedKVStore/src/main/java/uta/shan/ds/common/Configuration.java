@@ -7,12 +7,12 @@ import java.util.List;
 public class Configuration{
 	private int configNumber;//config number
 	private int[] shards;//shard->gid
-	private Map<Integer,List<String>> Groups;//gid->servers
+	private Map<Integer,List<String>> groups;//gid->servers
 	public Configuration(){}
-	public Configuration(int config,int[] sha){
+	public Configuration(int config,int[] sha,Map<Integer,List<String>> map){
 		configNumber=config;
 		shards=sha;
-		Groups=new HashMap<>();
+		groups=map;
 	}
 
 	//return configuration number

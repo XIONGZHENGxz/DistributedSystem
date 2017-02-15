@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantLock;
 import java.lang.Runnable;
 
 import java.rmi.registry.Registry;
@@ -38,9 +39,11 @@ public class ShardMaster implements Runnable,ShardMasterBase{
 	List<Configuration> configs;
 	int[] ports;
 	String[] servers;
+	ReentrantLock lock;
 	int seed;
 	private static final int shardsNumber=10;
 	public ShardMaster(int me,String[] servers,int[] ports){
+		lock=new ReentrantLock();
 		this.seed=0;
 		this.me=me;
 		this.servers=servers;
@@ -82,7 +85,7 @@ public class ShardMaster implements Runnable,ShardMasterBase{
 		if(op.type.equals(Type.JOIN)) this.createConfig(Type.JOIN,op.gid,op.servers,-1);
 		else if(op.type.equals(Type.LEAVE)) this.createConfig(Type.LEAVE,op.gid,null,-1);
 		else if(op.type.equals(Type.MOVE)) this.createConfig(Type.MOVE,op.gid,null,op.shard);
-		else;
+		else;//query
 		this.paxos.Done(seq);
 	}
 
@@ -136,30 +139,71 @@ public class ShardMaster implements Runnable,ShardMasterBase{
 			}
 		this.configs.add(newConfig);
 	}
-	
+
+	//balance load
 	public int[] balance(Set<Integer> gids,int[] shards){
 		int[] newShards=new int[shards.length];
+		int expectedLoad=shards.length/gids.size();
+		if(expectedLoad==0) expectedLoad=1;
+		List<Integer> reassign=new ArrayList<>();
+		Map<Integer,Integer> map=new HashMap<>();
+		for(int gid:gids) map.put(gid,0);
+		for(int i=0;i<shards.length;i++){
+			if(!map.containsKey(shards[i])) map.put(shards[i],1);
+			else map.put(shards[i],map.get(shards[i])+1);
+			newShards[i]=shards[i];
+			if(map.get(shards[i])>expectedLoad || !gids.contains(shards[i]))
+				reassign.add(i);
+		}
+
+		for(int gid:gids){
+			if(gid==0) continue;
+			while(map.get(gid)<expectedLoad && reassign.size()>0){
+				newShards[reassign.get(0)]=gid;
+				map.put(gid,map.get(gid)+1);
+				reassign.remove(0);
+			}
+		}
 		return newShards;
 	}
 
 	//join rpc
 	public JoinReply join(JoinArg arg){
+		lock.lock();
+		Operation op=new Operation(Type.JOIN,arg.gid,arg.servers,0);
+		this.agree(op);
+		lock.unlock();
 		return null;
 	}
 	
 	//leave rpc
 	public LeaveReply leave(LeaveArg arg){
+		lock.lock();
+		Operation op=new Operation(Type.LEAVE,arg.gid,null,0);
+		this.agree(op);
+		lock.unlock();
 		return null;
 	}
 
 	//move rpc
 	public MoveReply move(MoveArg arg){
+		lock.lock();
+		Operation op=new Operation(Type.MOVE,arg.gid,null,arg.shard);
+		this.agree(op);
+		lock.unlock();
 		return null;
 	}
 
 	//query rpc
 	public QueryReply query(QueryArg arg){
-		return null;
+		lock.lock();
+		Operation op=new Operation(Type.QUERY,arg.configNum,null,0);
+		this.agree(op);
+		QueryReply qr=null;
+		if(arg.configNum==-1 || arg.configNum>this.configs.size()) qr=new QueryReply(this.configs.get(configs.size()-1));
+		else qr=new QueryReply(this.configs.get(arg.configNum));
+		lock.unlock();
+		return qr;
 	}
 	
 	@Override
