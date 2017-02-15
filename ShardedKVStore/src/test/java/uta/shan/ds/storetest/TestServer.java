@@ -2,8 +2,8 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
-import uta.shan.ds.Server;
-import uta.shan.ds.Client;
+import uta.shan.ds.server.Server;
+import uta.shan.ds.client.Client;
 import java.util.concurrent.TimeUnit;
 
 public class TestServer{
