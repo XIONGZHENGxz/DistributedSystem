@@ -1,124 +1,80 @@
 package uta.shan.ds;
-import java.rmi.registry.Registry;
-import java.util.concurrent.Semaphore;
+
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.Random;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.Map;
 import java.util.HashMap;
-import java.lang.Runnable;
-import uta.shan.paxos.*;
-import java.rmi.registry.LocateRegistry;
+import uta.shan.paxos2.*;
 
-public class Server implements ServerBase,Runnable{
-	String[] servers;
-	int[] ports;
-	public int me;
-	int seed;
-	ReentrantLock lock;
-	Paxos paxos;
+
+public class Server {
+
+	private ClientListener listener;
+	private String[] servers;
+	private int[] ports;
+	private int me;
+	private int seed;
+	private ReentrantLock lock;
+	private Paxos<Operation> paxos;
 	Map<String,String> store;
-	Map<String,String> seen;
-	Map<String,String> prevGets;	
-	Random rand;
-	Semaphore shut;
+
 	public Server(int me,String[] servers,int[] ports){
-		this.rand=new Random();
 		this.seed=0;
 		this.me=me;
 		this.servers=servers;
 		this.ports=ports;
-		this.paxos=new Paxos(me,servers,ports);
+		this.paxos=new Paxos(servers,ports,me);
 		store=new HashMap<>();
-		seen=new HashMap<>();
-		prevGets=new HashMap<>();
-		shut=new Semaphore(0);
 		lock=new ReentrantLock();
+		listener = new ClientListener(99999,this);
+		listener.start();
 	}
 
-	//shut down itself, for test
-	public void shutdown(){
-		System.out.println("somebody wants me to shutdown!");
-	}
-
-	//resume
-	public void resume(){
+	//get me
+	public int getMe() {
+		return this.me;
 	}
 
 	//read value
-	public GetReply Get(GetArg arg){
+	public GetReply get(GetArg arg){
 		String key=arg.key;
-		if(this.seen.get(arg.me).equals(arg.rid)) return new GetReply(this.prevGets.get(arg.me),true);
-		if(!store.containsKey(key)) return new GetReply();
-		else{
-			this.agree(new Operation(arg.rid,arg.key,null,"get",arg.me));
-			this.seen.put(arg.me,arg.rid);
-			return new GetReply(store.get(key),true);
-		}
-	}
-	//wait for paxos to reach agreement
-	public Operation reachAgreement(int seq){
-		while(true){
-			Status s=this.paxos.getStatus(seq);
-			if(s==Status.DECIDED){
-				return (Operation)this.paxos.getOperation(seq);
-			}else if(s==Status.PENDING){
-				try{
-					Thread.sleep(10);
-				} catch(InterruptedException e){
-					e.printStackTrace();
-				}
-			}
-		}
+		agree(new Operation(arg.rid,arg.key,null,"get"));
+		if(!store.containsKey(key)) new GetReply(null,false);
+		return new GetReply(store.get(key),true);
 	}
 
 	//commit operation
 	public void commitOperation(int seq,Operation op){
-		if(op.type.equals("get")){
-			String prev="";
-			if(this.store.containsKey(op.key)) prev=this.store.get(op.key);
-			this.prevGets.put(op.key,prev);
-		}else if(op.type.equals("put")){
-			this.store.put(op.key,op.value);
-		}else{
-			this.store.put(op.key,this.store.get(op.key)+op.value);
+		if(op.type.equals("put")){
+			store.put(op.key,op.value);
+		}else if (op.type.equals("append")){
+			store.put(op.key,store.get(op.key)+op.value);
 		}
-		this.paxos.Done(seq);
+		paxos.getLearner().doneSeq(seq);
 	}
 
 	//agree on an operation
 	public void agree(Operation op){
-		this.seed++;
-		Status status=this.paxos.getStatus(this.seed);
-		if(status==Status.PENDING){
-			this.paxos.start(this.seed,op);
-			this.commitOperation(this.seed,op);
-		}else if(status==Status.DECIDED)
-			this.commitOperation(this.seed,op);
+		while(true) {
+			seed++;
+			Status status = paxos.getLearner().getStatus(seed);
+			if (status == Status.PENDING) {
+				paxos.startConcensus(seed, op);
+				Operation agreed = (Operation) paxos.reachAgreement(seed);
+				commitOperation(seed, agreed);
+				if(agreed.rid.equals(op.rid)) break;
+			} else if (status == Status.DECIDED)
+				commitOperation(seed, (Operation) paxos.getLearner().getSeqMap().get(seed).getValue());
+		}
 	}
 		
 	//write value
-	public PutAppendReply PutAppend(PutAppendArg arg){
+	public PutReply put(PutArg arg){
 		lock.lock();
-		if(this.seen.get(arg.me)==arg.rid) return null;
 		String key=arg.key;
 		String val=arg.value;
-		this.agree(new Operation(arg.key,arg.value,arg.flag,arg.rid,arg.me));
-		this.seen.put(arg.me,arg.rid);
+		this.agree(new Operation(arg.rid, arg.key,arg.value,"put"));
 		lock.unlock();
-		return new PutAppendReply(true);
-	}
-	@Override
-	public  void run(){
-		try{
-			System.setProperty("java.rmi.server.hostname",this.servers[this.me]);
-			ServerBase stub=(ServerBase) UnicastRemoteObject.exportObject(this,0);
-			Registry registry=LocateRegistry.createRegistry(this.ports[this.me]);
-			registry.rebind("key/value store",stub);
-			System.out.println("key value store ready!");
-		}catch(Exception e){
-			e.printStackTrace();
-		}
+		return new PutReply(true);
 	}
 
 }

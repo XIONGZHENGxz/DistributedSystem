@@ -5,11 +5,11 @@ public class GetArg implements Serializable{
 	static final long serialVersionUID = 1L;
 	String key;
 	String rid;
-	String me;
+//	String me;
 	public GetArg(String key,String rid,String me){
 		this.key=key;
 		this.rid=rid;
-		this.me=me;
+//		this.me=me;
 	}
 }
 
