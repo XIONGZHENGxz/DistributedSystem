@@ -1,11 +1,13 @@
 package uta.shan.fusionBasedDS;
 
 import java.io.PrintWriter;
+import java.io.Serializable;
 
 /**
  * Created by xz on 6/7/17.
  */
-public class PrimaryNode<E> {
+public class PrimaryNode<E> implements Serializable {
+    final static long serialVersionUID=1L;
     private E value;
     private AuxNode<E> auxNode;
 

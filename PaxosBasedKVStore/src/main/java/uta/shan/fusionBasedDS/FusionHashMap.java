@@ -1,17 +1,17 @@
 package uta.shan.fusionBasedDS;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.HashMap;
 
-public class FusionHashMap {
+public class FusionHashMap implements Serializable {
+    final static long serialVersionUID=1L;
     private Map<Integer,PrimaryNode<Integer>> map;
     private DoubleLinkedList<Integer> auxList;
-//    private int me;//my id
 
     public FusionHashMap() {
         map = new HashMap<>();
         auxList = new DoubleLinkedList<>();
-//        me = id;
     }
 
     //return old value, if not exists, return -1;
@@ -55,8 +55,7 @@ public class FusionHashMap {
     }
 
     public String toString() {
-        String res = "auxList:\n\n";
-        res += auxList.toString()+"\n\n";
+        String res = "";
         res += "Fused map:\n\n";
         for(int key: map.keySet()) {
             res += "key: "+key+" value: "+map.get(key).toString()+"\n";

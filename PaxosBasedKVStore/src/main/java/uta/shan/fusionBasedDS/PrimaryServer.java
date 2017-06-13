@@ -2,7 +2,9 @@ package uta.shan.fusionBasedDS;
 
 import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
+import uta.shan.config.ConfigReader;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.util.StringTokenizer;
 import java.util.concurrent.locks.ReentrantLock;
@@ -10,22 +12,31 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by xz on 6/7/17.
  */
+
 public class PrimaryServer extends Server {
+    private Listener listener;
     private ReentrantLock lock;
     private String[] fusedBackupHosts;
     private int[] fusedBackPorts;
     private FusionHashMap fusionHashMap;
-    private Listener listener;
-    private int id;
 
-    public PrimaryServer(String[] hosts, int[] ports, int id) {
+    public PrimaryServer(String[] hosts, int[] ports, int id, int port) {
         lock = new ReentrantLock();
         this.id = id;
         fusedBackPorts = ports;
         fusedBackupHosts = hosts;
         fusionHashMap = new FusionHashMap();
-        listener = new Listener(Util.clientPort,this);
+        listener = new Listener(port,this);
         listener.start();
+    }
+
+    @Override
+    public void shutDown() {
+        try {
+            listener.getServerSocket().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -46,7 +57,7 @@ public class PrimaryServer extends Server {
             int val = Integer.parseInt(st.nextToken());
             int oldVal = fusionHashMap.get(key);
             fusionHashMap.put(key,val);
-            sendMsgToBackup(key+" "+val+" "+oldVal+" "+id);
+            sendMsgToBackup("put "+key+" "+val+" "+oldVal+" "+id);
             res = "put success";
         } else if(arg.equals("remove")) {
             int key = Integer.parseInt(st.nextToken());
@@ -54,7 +65,7 @@ public class PrimaryServer extends Server {
             else {
                 int valToRemove = fusionHashMap.get(key);
                 int valOfLast = fusionHashMap.getLast();
-                sendMsgToBackup(key + " " + valToRemove + " " + valOfLast + " " + id);
+                sendMsgToBackup("remove "+key + " " + valToRemove + " " + valOfLast + " " + id);
                 boolean ok = fusionHashMap.remove(key);
                 res = "remove " + (ok ? "success" : "failure");
             }
@@ -72,5 +83,19 @@ public class PrimaryServer extends Server {
         for(int i=0;i<fusedBackupHosts.length;i++) {
             Messager.sendMsg(msg,fusedBackupHosts[i],fusedBackPorts[i]);
         }
+    }
+
+
+    public static void main(String...args) {
+        int me = Integer.parseInt(args[1]);
+        int[] nums = new int[2];
+        ConfigReader.readNumbers(args[0],nums);
+        String[] backupHosts = new String[nums[1]];
+        int[] backupPorts = new int[nums[1]];
+        int[] primaryPorts = new int[nums[0]];
+        String[] primaryHosts = new String[nums[0]];
+
+        ConfigReader.readJson(args[0],primaryHosts,backupHosts,primaryPorts,backupPorts);
+        PrimaryServer primaryServer = new PrimaryServer(backupHosts,backupPorts,me,primaryPorts[me]);
     }
 }

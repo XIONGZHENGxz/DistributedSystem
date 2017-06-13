@@ -52,6 +52,33 @@ public class Messager {
 		}
 	}
 
+	public static Object sendAndWait(String msg, String host, int port) {
+		try {
+			InetSocketAddress addr = new InetSocketAddress(host,port);
+			Socket socket = new Socket();
+			socket.connect(addr, Util.TIMEOUT);
+			PrintStream ps = new PrintStream(socket.getOutputStream());
+			ps.println(msg);
+			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+			Object resp = null;
+			long startTime = Util.getCurrTime();
+			long currTime = Util.getCurrTime();
+			while(resp == null && currTime-startTime < Util.TIMEOUT) {
+				resp = in.readObject();
+				currTime = Util.getCurrTime();
+				if(Util.DEBUG) {
+					System.out.println("Debug: waiting for reply from "+host+" "+port);
+				}
+			}
+			return resp;
+		} catch (IOException e) {
+			return null;
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
 	public static Object sendAndWaitReply(Object msg,String host, int port) {
 		try {
 			InetSocketAddress addr = new InetSocketAddress(host,port);
@@ -61,11 +88,14 @@ public class Messager {
 			out.writeObject(msg);
 			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 			Object resp = null;
-			long startTime = System.currentTimeMillis();
-			long currTime = System.currentTimeMillis();
+			long startTime = Util.getCurrTime();
+			long currTime = Util.getCurrTime();
 			while(resp == null && currTime-startTime < Util.TIMEOUT) {
 				resp = in.readObject();
-				currTime = System.currentTimeMillis();
+				currTime = Util.getCurrTime();
+				if(Util.DEBUG) {
+					System.out.println("Debug: waiting for reply from "+host+" "+port);
+				}
 			}
 			return resp;
 		} catch (IOException e) {
@@ -128,6 +158,9 @@ public class Messager {
 		try {
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			resp = reader.readLine();
+			if(Util.DEBUG) {
+				System.out.println("received request: " + resp);
+			}
 		} catch(Exception e){
 			e.printStackTrace();
 		}

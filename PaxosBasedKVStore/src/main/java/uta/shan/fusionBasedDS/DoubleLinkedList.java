@@ -1,9 +1,12 @@
 package uta.shan.fusionBasedDS;
 
+import java.io.Serializable;
+
 /**
  * Created by xz on 6/7/17.
  */
-public class DoubleLinkedList<E> {
+public class DoubleLinkedList<E> implements Serializable {
+    final static long serialVersionUID=1L;
     private Node head;
     private Node tail;
     private int size;
@@ -72,15 +75,14 @@ public class DoubleLinkedList<E> {
 
     public void pop() {
         this.remove(tail.getPre());
-        size--;
     }
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if(head.getNext() == tail) return "";
         Node<E> node = getHeadNode();
-        while(node.getValue() != null) {
-            sb.append(node.getValue().toString()+"\n");
+        while(node != getTail()) {
+            sb.append(node.toString()+"\n");
             node = node.getNext();
         }
         return sb.toString();

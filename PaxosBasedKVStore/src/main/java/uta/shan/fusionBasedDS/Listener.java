@@ -18,6 +18,14 @@ public class Listener extends Thread{
         this.server = server;
     }
 
+    public int getPort() {
+        return this.port;
+    }
+
+    public ServerSocket getServerSocket() {
+        return this.serverSocket;
+    }
+
     @Override
     public void run() {
         try{
@@ -37,7 +45,8 @@ public class Listener extends Thread{
                 if(reply!=null)
                     Messager.sendMsg(reply,socket);
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("server: "+server.getId()+" down!");
+                break;
             }
         }
     }

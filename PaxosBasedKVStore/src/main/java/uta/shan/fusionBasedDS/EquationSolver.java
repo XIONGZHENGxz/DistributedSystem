@@ -1,13 +1,33 @@
 package uta.shan.fusionBasedDS;
 
+import uta.shan.communication.Util;
+
 import java.util.List;
 
 /**
  * Created by xz on 6/9/17.
  */
 public class EquationSolver {
-    public static double[] solve(double[][] A) {
+    public static void printMat(double[][] A) {
         int n = A.length;
+        for(int i=0;i<n;i++) {
+            for(int j=0;j<n+1;j++) {
+                System.out.println(A[i][j]+"\t");
+            }
+            System.out.println("\n");
+        }
+    }
+
+    public static double[] solve(double[][] a) {
+        if(Util.DEBUG) printMat(a);
+        int n = a.length;
+        double[][] A = new double[n][n+1];
+
+        for(int i=0;i<n;i++) {
+            for(int j=0;j<n+1;j++) {
+                A[i][j] = a[i][j];
+            }
+        }
 
         for (int i=0; i<n; i++) {
             // Search for maximum in this column
@@ -48,15 +68,16 @@ public class EquationSolver {
                 A[k][n] -= A[k][i] * x[i];
             }
         }
+        if(Util.DEBUG) printResult(x);
         return x;
     }
 
-    public static void main(String...args) {
-        double[][] a = new
-                double[][]{{1, 0, 0, 2}, {0, 1, 0,3},{4, 3, 2, 10}};
-        double[] x = EquationSolver.solve(a);
+    public static void printResult(double[] x) {
+        System.out.println("result:");
         for(int i=0;i<x.length;i++) {
             System.out.println(x[i]);
         }
+        System.out.println("\n");
+
     }
 }

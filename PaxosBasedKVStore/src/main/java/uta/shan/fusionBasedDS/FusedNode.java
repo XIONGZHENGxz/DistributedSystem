@@ -1,15 +1,18 @@
 package uta.shan.fusionBasedDS;
 
+import java.io.Serializable;
+
 /**
  * Created by xz on 6/8/17.
  */
-public class FusedNode<E> extends Node {
-    private int codeVal;
+public class FusedNode<E> extends Node implements Serializable {
+    final static long serialVersionUID=1L;
     private int refCount;
     private FusedAuxNode[] auxNodes;
 
     public FusedNode(int numOfPrimaries) {
         super();
+        value = 0;
         auxNodes = new FusedAuxNode[numOfPrimaries];
     }
 
@@ -30,10 +33,10 @@ public class FusedNode<E> extends Node {
     }
 
     public void updateCode(int oldVal, int newVal, int pid, int bid) {
-        removeElem(oldVal,pid,bid);
-        addElem(newVal,pid,bid);
+        value = Fusion.updateCode(value,oldVal,newVal,pid,bid);
     }
 
+    /*
     public void removeElem(int oldElem, int pid, int bid) {
         codeVal = Fusion.updateCode(codeVal, oldElem, 0, pid, bid);
 
@@ -43,6 +46,7 @@ public class FusedNode<E> extends Node {
         codeVal = Fusion.updateCode(codeVal,0, newElem, pid, bid);
     }
 
+*/
     public FusedAuxNode<E> getAuxNode(int i) {
         return this.auxNodes[i];
     }
@@ -50,6 +54,5 @@ public class FusedNode<E> extends Node {
     public void insertAuxNode(int i,FusedAuxNode<E> node) {
         this.auxNodes[i] = node;
     }
-
 
 }
