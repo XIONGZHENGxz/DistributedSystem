@@ -1,15 +1,18 @@
 package uta.shan.paxos2;
 
+import java.io.Serializable;
+
 /**
  * Created by xz on 6/2/17.
  */
-public class Decision {
-    private Proposal p;
+public class Decision<T> implements Serializable {
+    private final static long serialVersionUID=11L;
+    private Proposal<T> p;
     private int seq;
     private int done;
     private int me;
 
-    public Decision(int seq,Proposal p,int done,int me) {
+    public Decision(int seq,Proposal<T> p,int done,int me) {
         this.p = p;
         this.seq = seq;
         this.done = done;
@@ -17,7 +20,7 @@ public class Decision {
     }
 
     //get proposal
-    public Proposal getProposal() {
+    public Proposal<T> getProposal() {
         return this.p;
     }
 

@@ -1,15 +1,17 @@
 package uta.shan.paxos2;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
-import uta.shan.messager.Messager;
+import uta.shan.communication.Messager;
+import uta.shan.communication.Util;
 
 /**
  * Created by xz on 6/2/17.
  */
 public class Learner<T> {
-    private Map<Integer,Instance> seqMap;
+    private Map<Integer,Instance<T>> seqMap;
     private String[] peers;
     private int[] ports;
     private int me;
@@ -22,15 +24,18 @@ public class Learner<T> {
         this.peers = peers;
         this.ports = ports;
         dones = new int[peers.length];
+        for(int i=0;i<peers.length;i++) dones[i] = -1;
         lock = new ReentrantLock();
     }
 
     //get status
     public Status getStatus(int seq) {
+        if(!seqMap.containsKey(seq)) return Status.PENDING;
         return seqMap.get(seq).getStatus();
     }
 
     public void BroadcastDecision(int seq,Proposal<T> proposal) {
+        if(Util.DEBUG) System.out.println(me+" broadcast decion "+seq+" "+proposal.getValue());
         Decision decision = new Decision(seq,proposal,dones[me],me);
         for(int i=0;i<peers.length;i++){
             if(i == me) {
@@ -40,6 +45,7 @@ public class Learner<T> {
             }
         }
         doneSeq(seq);
+        if(Util.DEBUG) System.out.println(me+" complete broadcast decision "+seq+" ");
     }
 
     public void sendDecision(Decision decision,String host,int port) {
@@ -47,11 +53,13 @@ public class Learner<T> {
     }
 
     public void makeDecision(Decision decision) {
+        if(Util.DEBUG) System.out.println(me+" making decision "+decision.getProposal().getValue());
         Proposal<T> p = decision.getProposal();
         int seq = decision.getSeq();
         Instance<T> inst = new Instance<>(seq,p.getValue(),Status.DECIDED,p.getNum(),p);
         dones[decision.getMe()] = decision.getDone();
         seqMap.put(seq,inst);
+        if(Util.DEBUG) System.out.println(me+" made decision ");
     }
 
     public void doneSeq(int seq) {
@@ -59,7 +67,7 @@ public class Learner<T> {
     }
 
     //get seqmap
-    public Map<Integer,Instance> getSeqMap() {
+    public Map<Integer,Instance<T>> getSeqMap() {
         return this.seqMap;
     }
 
@@ -74,11 +82,13 @@ public class Learner<T> {
             }
         }
 
-        for(int key:seqMap.keySet()) {
-            if(key <= globalMin && seqMap.get(key).getStatus() == Status.DECIDED)
-                seqMap.remove(key);
+        /*
+        Iterator<Map.Entry<Integer,Instance<T>>> iter = (Iterator<Map.Entry<Integer,Instance<T>>>)seqMap.entrySet().iterator();
+        while(iter.hasNext()) {
+            int key = iter.next().getKey();
+            if(key <= globalMin && seqMap.get(key).getStatus() == Status.DECIDED) iter.remove();
         }
-
+    */
         lock.unlock();
         return globalMin+1;
     }

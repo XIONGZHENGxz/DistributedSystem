@@ -1,5 +1,7 @@
 package uta.shan.paxostest;
 
+import org.junit.Before;
+import uta.shan.communication.Util;
 import uta.shan.paxos2.*;
 import org.junit.Test;
 import java.util.concurrent.Executors;
@@ -11,26 +13,28 @@ public class TestNewPaxos {
 	//test single paxosos
 	private static final String LOCALHOST="localhost";
 	private static final int NUMTHREADS = 10;
-	private int num;
 	private String[] peers;
 	private Paxos<String>[] paxos;
 	private int[] ports;
 
 	private ExecutorService es = Executors.newFixedThreadPool(NUMTHREADS);
 
-	//init paxosos
 	public void initPaxos(int num){
-		this.num=num;
-		peers=new String[num];
-		ports=new int[num];
-		paxos=new Paxos[num];
-		for(int i=0;i<num;i++){
-			ports[i]=1099+i;
-			peers[i]=LOCALHOST;
+		peers = new String[num];
+		ports = new int[num];
+		paxos = new Paxos[num];
+		for(int i = 0;i < num;i++){
+			ports[i] = Util.paxosPort+i;
+			peers[i] = LOCALHOST;
 		}
+
 		for(int i=0;i<num;i++){
-			paxos[i]=new Paxos<>(this.peers,this.ports,i);
+			paxos[i] = new Paxos<>(peers,ports,i);
+			while(paxos[i].getListener().getServerSocket() == null) {
+				Thread.yield();
+			}
 		}
+
 	}
 
 	public  int numOfDecided(int totalNum,int seq){
@@ -55,7 +59,7 @@ public class TestNewPaxos {
 	//wait paxos to decide
 	public boolean waitDecide(int totalNum,int seq){
 		int waitInterval=1000;
-		int iter = 30;
+		int iter = 10;
 		int num = -1;
 		while(iter-->0){
 			num = numOfDecided(totalNum,seq);
@@ -69,14 +73,24 @@ public class TestNewPaxos {
 		return false;
 	}
 
+	@Test
+	public void test0() {
+		int n = 1;
+		initPaxos(n);
+		assertTrue(paxos[0].isShutdown() == false);
+		paxos[0].shutdown();
+		assertTrue(paxos[0].isShutdown() == true);
+	}
+
 	//test single paxos server
 	@Test
 	public void test1(){
 		int n=1;
 		initPaxos(n);
 		paxos[0].startConcensus(0,"hello");
-		paxos[0].run();
+		paxos[0].start();
 		assertTrue(waitDecide(n,0));
+		assertTrue(paxos[0].getValue(0).equals("hello"));
 	}
 
 	//multiple proposer
@@ -85,23 +99,26 @@ public class TestNewPaxos {
 		int n=2;
 		initPaxos(n);
 		paxos[0].startConcensus(0,"hello");
-		paxos[1].startConcensus(0,"lang");
+		paxos[1].startConcensus(0,"world");
 		for(int i=0;i<n;i++) es.execute(paxos[i]);
-		boolean ok=false;
-		try{
+		try {
 			es.shutdown();
-			ok=es.awaitTermination(1,TimeUnit.MINUTES);
-		}catch(InterruptedException e){
+			es.awaitTermination(Util.PAXOS_TIMEOUT+1000,TimeUnit.MILLISECONDS);
+		} catch(InterruptedException e){
 			e.printStackTrace();
 		}
-		assertTrue(ok);
+
+		System.out.println("decided value: "+paxos[0].getValue(0));
+		System.out.println("decided value: "+paxos[1].getValue(0));
+
 		assertTrue(waitDecide(n,0));
+		assertTrue(paxos[0].getValue(0).equals(paxos[1].getValue(0)));
 	}
 
 	@Test
 	public void test3(){
 		int n=5;
-		this.initPaxos(n);
+		initPaxos(n);
 		paxos[0].startConcensus(0,"hello");
 		paxos[1].startConcensus(0,"lang");
 		paxos[2].startConcensus(0,"zheng");
@@ -117,5 +134,12 @@ public class TestNewPaxos {
 		}
 		assertTrue(ok);
 		assertTrue(waitDecide(n,0));
+		for(int i=0;i<4;i++) {
+			assertTrue(paxos[i].getValue(0).equals(paxos[i+1].getValue(0)));
+		}
+		for(int i=0;i<4;i++) {
+			assertTrue(paxos[i].getValue(1).equals(paxos[i+1].getValue(1)));
+		}
+
 	}
 }

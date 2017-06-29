@@ -1,6 +1,9 @@
 package uta.shan.paxos2;
 
-public class Proposal<T>{
+import java.io.Serializable;
+
+public class Proposal<T> implements Serializable {
+	private final static long serialVersionUID=11L;
 	private int pNumber;
 	private T pValue;
 

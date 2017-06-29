@@ -11,6 +11,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.RemoteException;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Random;
+
 public class Paxos implements PaxosBase,Runnable{
 	String[] peers;
 	int[] ports;
@@ -85,6 +86,7 @@ public class Paxos implements PaxosBase,Runnable{
 	//process prepare rpc
 	public PaxosReply ProcessPrepare(PaxosArg arg){
 		this.lock.lock();
+
 		PaxosReply reply=new PaxosReply();
 		int seq=arg.seq;
 		if(!this.map.containsKey(seq)) this.map.put(seq,makeInstance(seq,null));
@@ -97,6 +99,7 @@ public class Paxos implements PaxosBase,Runnable{
 				reply.pNumber=inst.accepted.pNumber;
 				reply.pValue=inst.accepted.pValue;
 			}
+
 			inst.pNumber=arg.pNumber;
 			this.map.put(seq,inst);
 		}

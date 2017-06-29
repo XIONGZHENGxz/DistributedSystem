@@ -1,4 +1,4 @@
-package uta.shan.ds;
+package uta.shan.replicationBasedDS;
 
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Map;
@@ -6,26 +6,28 @@ import java.util.HashMap;
 import uta.shan.paxos2.*;
 
 
-public class Server {
+public class Server<K,V> {
 
-	private ClientListener listener;
-	private String[] servers;
+	private Listener listener;
+	private String[] servers;//servers in the same group
 	private int[] ports;
 	private int me;
+	private int gid;//group id
 	private int seed;
 	private ReentrantLock lock;
-	private Paxos<Operation> paxos;
-	Map<String,String> store;
+	private Paxos<Operation<K,V>> paxos;
+	private Map<K,V> store;
 
-	public Server(int me,String[] servers,int[] ports){
+	public Server(int me,int gid, String[] servers,int[] paxosPorts, int port){
+		this.gid = gid;
 		this.seed=0;
 		this.me=me;
 		this.servers=servers;
-		this.ports=ports;
+		this.ports = paxosPorts;
 		this.paxos=new Paxos(servers,ports,me);
 		store=new HashMap<>();
 		lock=new ReentrantLock();
-		listener = new ClientListener(99999,this);
+		listener = new Listener(port,this);
 		listener.start();
 	}
 
@@ -34,47 +36,95 @@ public class Server {
 		return this.me;
 	}
 
+	public Reply<V> handleRequest(Request<K,V> request) {
+		if(request.getType().equals("get")) {
+			return get(request);
+		} else if(request.getType().equals("put")) {
+			return put(request);
+		} else if(request.getType().equals("remove")) {
+			return remove(request);
+		} else {
+			return null;
+		}
+	}
+
 	//read value
-	public GetReply get(GetArg arg){
-		String key=arg.key;
-		agree(new Operation(arg.rid,arg.key,null,"get"));
-		if(!store.containsKey(key)) new GetReply(null,false);
-		return new GetReply(store.get(key),true);
+	public Reply<V> get(Request<K,V> arg){
+		K key=arg.getKey();
+		agree(new Operation<K,V>(arg.getRid(),arg.getKey(),null,"get"));
+		if(!store.containsKey(key)) return new Reply<V>(null,false);
+		return new Reply<V>(store.get(key),true);
+	}
+
+	//remove key
+	public Reply<V> remove(Request<K,V> arg) {
+		K key = arg.getKey();
+		V val = store.get(key);
+		agree(new Operation<K, V>(arg.getRid(),arg.getKey(),null,"remove"));
+		if(!store.containsKey(key)) return new Reply<V>(val,true);
+		return new Reply<V>(null,false);
 	}
 
 	//commit operation
-	public void commitOperation(int seq,Operation op){
-		if(op.type.equals("put")){
-			store.put(op.key,op.value);
-		}else if (op.type.equals("append")){
-			store.put(op.key,store.get(op.key)+op.value);
+	public void commitOperation(int seq,Operation<K,V> op){
+		if(op.getType().equals("put")){
+			store.put(op.getKey(),op.getValue());
+		}else if (op.getType().equals("remove")){
+			store.remove(op.getKey());
 		}
 		paxos.getLearner().doneSeq(seq);
 	}
 
+	//reach agreement
+	public Object reachAgreement(int seq) {
+		while(true) {
+			Instance inst = paxos.getLearner().getSeqMap().get(seq);
+			if(inst != null && inst.getStatus() == Status.DECIDED){
+				return inst.getProposal().getValue();
+			}
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+
+	//get seq
+	public Operation<K,V> getSeq(int seq) {
+		Map<Integer,Instance<Operation<K,V>>> map = paxos.getLearner().getSeqMap();
+		Instance<Operation<K,V>> inst = map.get(seq);
+		if(!map.containsKey(seq)) return null;
+		return (Operation<K, V>) inst.getValue();
+	}
+
 	//agree on an operation
-	public void agree(Operation op){
+	public void agree(Operation<K,V> op){
 		while(true) {
 			seed++;
 			Status status = paxos.getLearner().getStatus(seed);
 			if (status == Status.PENDING) {
 				paxos.startConcensus(seed, op);
-				Operation agreed = (Operation) paxos.reachAgreement(seed);
+				Operation<K,V> agreed = (Operation<K,V>) reachAgreement(seed);
+				System.out.println("complete concensus..."+ seed + " "+agreed.getType());
 				commitOperation(seed, agreed);
-				if(agreed.rid.equals(op.rid)) break;
-			} else if (status == Status.DECIDED)
-				commitOperation(seed, (Operation) paxos.getLearner().getSeqMap().get(seed).getValue());
+				if(agreed.getRid().equals(op.getRid())) break;
+
+
+					} else if (status == Status.DECIDED)
+				commitOperation(seed, (Operation<K,V>) paxos.getLearner().getSeqMap().get(seed).getValue());
 		}
 	}
 		
 	//write value
-	public PutReply put(PutArg arg){
+	public Reply<V> put(Request<K,V> arg){
 		lock.lock();
-		String key=arg.key;
-		String val=arg.value;
-		this.agree(new Operation(arg.rid, arg.key,arg.value,"put"));
+		K key=arg.getKey();
+		V val=arg.getValue();
+		agree(new Operation<K,V>(arg.getRid(), arg.getKey(),arg.getValue(),"put"));
 		lock.unlock();
-		return new PutReply(true);
+		return new Reply(null,true);
 	}
 
 }

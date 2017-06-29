@@ -1,24 +1,30 @@
 package uta.shan.paxos2;
 
 import java.util.concurrent.locks.ReentrantLock;
-import uta.shan.messager.Messager;
+import uta.shan.communication.Messager;
+import uta.shan.communication.Util;
 
 public class Proposer<T>{
-
 	private T value;
 	private int me;
 	private String[] peers;
 	private int[] ports;
 	private ReentrantLock lock;
 	private Proposal<T> proposal;
-	public static int prepareAccNum = 0;
-	public static int acceptAccNum = 0;
-	public static int maxNum = 0;
+	private Acceptor<T> acceptor;
 
-	public Proposer(int me, String[] peers,int[] ports) {
+	public int prepareAccNum;
+	public int acceptAccNum;
+	public int maxNum;
+
+	public Proposer(int me, String[] peers,int[] ports, Acceptor<T> acceptor) {
+		prepareAccNum = 0;
+		acceptAccNum = 0;
+		maxNum = 0;
 		this.me = me;
 		this.peers = peers;
 		this.ports = ports;
+		this.acceptor = acceptor;
 		lock = new ReentrantLock();
 		proposal = new Proposal<>();
 	}
@@ -26,6 +32,20 @@ public class Proposer<T>{
 	//set seq number
 	public void setValue(T value) {
 		this.value = value;
+		proposal.setVal(value);
+	}
+
+	//get value
+	public T getValue() {
+		return this.value;
+	}
+
+	public int getPrepareAccNum() {
+		return prepareAccNum;
+	}
+
+	public int getAcceptAccNum() {
+		return acceptAccNum;
 	}
 
 	//create pnumber
@@ -40,50 +60,57 @@ public class Proposer<T>{
 	}
 
 	//prepare a proposal 
-	public void prepare(int seq, String host, int port, int pNum) {
-		PrepareRequest request = new PrepareRequest(seq,pNum);
-		Messager.sendMsg(request, host, port);
-
-	}
-
-	public void BroadcastPrepare(int seq) {
-		int pNumber  = makeNumber();
-
-		for(int i=0;i<peers.length;i++) {
-			if(i == me) {
-				this.handlePrepareReply(new PrepareReply<T>("ok",proposal.getNum(),value));
-			} else {
-				prepare(seq, peers[i], ports[i], pNumber);
-			}
+	public void prepare(int seq, String host, int port, int pNum, int id) {
+		PrepareRequest request = new PrepareRequest(seq,pNum,me);
+		if(id == me) {
+			PrepareReply<T> reply = acceptor.handlePrepare(request);
+			handlePrepareReply(reply);
+		} else {
+			Messager.sendMsg(request, host, port);
+			System.out.println(me+ " send prepare to "+id);
 		}
 	}
 
+	public void BroadcastPrepare(int seq) {
+		if(Util.DEBUG) System.out.println(me+" broadcast prepare..."+seq);
+		int pNumber  = makeNumber();
+
+		for(int i=0;i<peers.length;i++) {
+			prepare(seq, peers[i], ports[i], pNumber, i);
+		}
+		if(Util.DEBUG) System.out.println(me+" complete broadcast prepare..."+seq);
+	}
+
 	//accept request
-	public void accept(int seq, String host,int port, Proposal proposal) {
-		AcceptRequest<T> acceptRequest = new AcceptRequest<>(seq,proposal);
-		Messager.sendMsg(acceptRequest,host,port);
+	public void accept(int seq, String host,int port, Proposal proposal,int id) {
+		AcceptRequest<T> acceptRequest = new AcceptRequest<>(seq,proposal,me);
+		if(id == me) {
+			AcceptReply<T> reply = acceptor.handleAccept(acceptRequest);
+			handleAcceptReply(reply);
+		} else {
+			Messager.sendMsg(acceptRequest, host, port);
+			System.out.println(me+ " send accept to "+id);
+		}
 	}
 
 	//broad case accept requests
 	public void BroadcaseAccept(int seq,Proposal proposal) {
+		if(Util.DEBUG) System.out.println(me+" broadcast accept..."+seq+" "+proposal.getValue());
 		for(int i=0;i<peers.length;i++) {
-			if(i == me) {
-				AcceptReply<T> reply = new AcceptReply<>();
-				reply.setStatus("ok");
-				this.handleAcceptReply(reply);
-			} else {
-				accept(seq,peers[i],ports[i], proposal);
-			}
+			accept(seq,peers[i],ports[i], proposal,i);
 		}
+		if(Util.DEBUG) System.out.println(me+" complete broadcast accept..."+seq);
 	}
 
 	//handle prepare reply
 	public void handlePrepareReply(PrepareReply<T> reply) {
-		if(reply.getStatus()=="ok") {
+		if(Util.DEBUG) System.out.println("prepare reply status..."+reply.getStatus()+" "+me);
+		if(reply.getStatus() != null && reply.getStatus().equals("ok")) {
 			prepareAccNum++;
 			if (reply.getNum() > maxNum) {
 				maxNum = reply.getNum();
-				proposal.setVal(reply.getVal());
+				if(reply.getVal() != null)
+					proposal.setVal(reply.getVal());
 			}
 		}
 	}
@@ -91,13 +118,21 @@ public class Proposer<T>{
 
 	//handle accept reply
 	public void handleAcceptReply(AcceptReply<T> reply) {
-		if(reply.getStatus()=="ok")
+		if(Util.DEBUG) System.out.println("accept reply status..."+reply.getStatus()+" "+me);
+		if(reply.getStatus() != null && reply.getStatus().equals("ok"))
 			acceptAccNum++;
 	}
 
 	//get Proposal
 	public Proposal<T> getProposal() {
 		return this.proposal;
+	}
+
+	//reset
+	public void reset() {
+		prepareAccNum = 0;
+		acceptAccNum = 0;
+		maxNum = 0;
 	}
 }
 

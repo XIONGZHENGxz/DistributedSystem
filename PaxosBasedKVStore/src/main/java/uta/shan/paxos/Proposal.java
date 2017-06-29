@@ -1,22 +1,27 @@
 package uta.shan.paxos;
-public class Proposal{
+public class Proposal<T>{
 	int pNumber;
-	Object pValue;
+	T pValue;
 	boolean bool=false;
-	protected Proposal(){}
-	protected Proposal(int number, Object value){
+	public Proposal(){}
+	public Proposal(int number, T value){
 		pNumber=number;
 		pValue=value;
 	}
 
-	protected Proposal(int number,Object value,boolean b){
+	public Proposal(int number,T value,boolean b){
 		this.pNumber=number;
 		this.pValue=value;
 		this.bool=b;
 	}
+	
+	//get number
+	public int getNum() {
+		return this.pNumber;
+	}
 
 	//return value
-	public Object getValue(){
+	public T getValue(){
 		return this.pValue;
 	}
 }

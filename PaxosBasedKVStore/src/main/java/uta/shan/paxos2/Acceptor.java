@@ -7,18 +7,19 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Acceptor<T> {
 	private ReentrantLock lock;
-	private Map<Integer,Instance> seqMap;//sequence -> Instance
+	private Map<Integer,Instance<T>> seqMap;//sequence -> Instance
 	private String[] peers;
 	private int[] ports;
 	private int me;
 
 	public Acceptor() {}
 
-	public Acceptor(String[] peers, int[] ports, int me, Map<Integer,Instance> seqMap) {
+	public Acceptor(String[] peers, int[] ports, int me, Map<Integer,Instance<T>> seqMap) {
 		this.peers = peers;
 		this.ports = ports;
 		this.me = me;
 		this.seqMap = seqMap;
+		lock = new ReentrantLock();
 	}
 
 	//handle prepare request
@@ -32,8 +33,8 @@ public class Acceptor<T> {
 			reply.setStatus("ok");
 
 			//already accepted
-			if(inst.getProposal()!=null) {
-				reply.setNumAndVal(inst.getNum(),inst.getValue());
+			if(inst.getProposal() != null) {
+				reply.setNumAndVal(inst.getNum(), inst.getValue());
 			}
 			inst.setNum(request.getNum());
 			seqMap.put(seq,inst);
@@ -64,6 +65,6 @@ public class Acceptor<T> {
 	}
 
 	public Instance makeInstance(int seq,Object val) {
-		return new Instance(seq,val,Status.PENDING,0,null);
+		return new Instance(seq,val,Status.PENDING,-1,null);
 	}
 }

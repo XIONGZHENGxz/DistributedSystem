@@ -4,6 +4,10 @@ package uta.shan.paxos2;
  * Created by xz on 6/2/17.
  */
 
+import uta.shan.communication.Messager;
+import uta.shan.communication.Util;
+import uta.shan.replicationBasedDS.Server;
+
 import java.io.IOException;
 import java.lang.Thread;
 import java.net.ServerSocket;
@@ -19,6 +23,11 @@ public class Listener<T> extends Thread{
         this.paxos = paxos;
     }
 
+    public ServerSocket getServerSocket() {
+        return serverSocket;
+    }
+
+    @Override
     public void run() {
         try {
             serverSocket = new ServerSocket(port);
@@ -28,11 +37,14 @@ public class Listener<T> extends Thread{
         while(true) {
             try {
                 Socket socket = serverSocket.accept();
-                System.out.println("socket connected...");
-                ConnectionHandler handler = new ConnectionHandler(socket,paxos);
-                handler.start();
+                if(Util.DEBUG) {
+                    System.out.println("socket connected..."+ port);
+                }
+                Object request = Messager.getMsg(socket);
+                paxos.handleRequest(request);
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("paxos at "+port+" down");
+                break;
             }
         }
     }

@@ -1,25 +1,21 @@
-package uta.shan.ds;
+package uta.shan.replicationBasedDS;
 import org.omg.CORBA.TIMEOUT;
+import uta.shan.communication.Messager;
+import uta.shan.communication.Util;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.Random;
 
-public class Client{
-	private static final int TIMEOUT = 3000;//3000 millis
-	private String[] servers;
-	private int[] ports;
+public class Client<K,V>{
+	private String[][] servers;//one row is one group of servers
+	private int[][] ports;
 	private Random rand;
 	private String me;
 
-	public Client(String name,String[] servers,int[] ports){
+	public Client(String name,String[][] servers,int[][] ports){
 		this.me=name;
 		this.servers=servers;
 		this.ports=ports;
+		rand = new Random();
 	}
 
 	//get me
@@ -28,72 +24,70 @@ public class Client{
 	}
 
 	//get servers
-	public String[] getServers() {
+	public String[][] getServers() {
 		return this.servers;
 	}
 
 	//generate unique id for every request
 	public String makeRequestId(){
-		int r=rand.nextInt(10000000);
+		int r = rand.nextInt(10000000);
 		return me+String.valueOf(r);
 	}
 
 	//get
-	public String get(String key){
-		GetArg ga=new GetArg(key,makeRequestId(),me);
-		GetReply gr=null;
+	public V get(K key){
+		int gid = decideGroup(key);
+		Request<K,V> request = new Request<>(key,null,makeRequestId(),"get");
+		Reply reply = null;
 		int i=0;
-		for(;i<servers.length;i++){
-			gr =(GetReply) sendWaitReply(ga,servers[i],ports[i]);
-			if(gr!=null && gr.status==true) break;//if gr==null, then the server is down
+		for(;i<servers[gid].length;i++){
+			reply =(Reply) Messager.sendAndWaitReply(request,servers[gid][i],ports[gid][i]);
+			if(reply!=null && reply.getStatus() == true) break;//if gr==null, then the server is down
 		}
-		if(i==this.servers.length) return "key does not exist!";
-		return gr.value;
+
+		if(i == servers[gid].length) return null;
+		return (V)reply.getValue();
 	}
 
-	//send and wait for reply
-	public Object sendWaitReply(Object request, String host, int port) {
-		try {
-			Socket socket = new Socket();
-			socket.connect(new InetSocketAddress(host,port), TIMEOUT);
-			ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-			out.writeObject(request);
-			out.flush();
-			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-			Object reply = null;
-			while(reply == null) {
-				reply = in.readObject();
-			}
-			return reply;
-		} catch (IOException e) {
-			return null;
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+	public boolean put(K key,V value){
+		int gid = decideGroup(key);
+		if(Util.DEBUG) {
+			System.out.println("Debug: \ngid: "+gid);
 		}
-		return null;
-	}
-
-	//shared by put and append
-	public boolean put(String key,String value){
-		PutArg putArg=new PutArg(key,value,makeRequestId());
-		PutReply reply = null;
-		for(int i = 0;i<servers.length;i++) {
-			reply = (PutReply) sendWaitReply(putArg,servers[i],ports[i]);
+		Request<K,V> request = new Request<>(key,value,makeRequestId(),"put");
+		Reply reply;
+		for(int i = 0;i<servers[gid].length;i++) {
+			reply = (Reply) Messager.sendAndWaitReply(request,servers[gid][i],ports[gid][i]);
 			if(reply != null && reply.getStatus()) return true;
 		}
 		return false;
 	}
 
-	/*
-	//append to key
-	public void append(String key,String value){
-		for(int i=0;i<this.servers.length;i++){
-			PutAppendReply par=this.PutAppend(key,value,this.servers[i],this.serverPorts[i],"append");
-			if(par.status==true) break;
+	//remove
+	public boolean remove(K key) {
+		int gid = decideGroup(key);
+		Request<K,V>  request = new Request<>(key,null,makeRequestId(),"remove");
+		Reply<V> reply;
+		for(int i=0;i<servers[gid].length;i++) {
+			reply = (Reply<V>) Messager.sendAndWaitReply(request,servers[gid][i],ports[gid][i]);
+			if(reply !=null && reply.getStatus()) return true;
+		}
+		return false;
+	}
+
+	//decide which group to get service
+	public int decideGroup(K key) {
+		return (int)getHashCode(key)%servers.length;
+	}
+
+	//a perfect hash function to divide keys
+	public long getHashCode(K key) {
+		if(key instanceof Integer) {
+			return (Integer) key;
+		} else{
+			return key.hashCode();
 		}
 	}
-	*/
-
 }
 
 

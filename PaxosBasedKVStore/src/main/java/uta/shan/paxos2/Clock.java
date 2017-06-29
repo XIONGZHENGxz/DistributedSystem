@@ -8,13 +8,13 @@ public class Clock{
 
 	//singleton class
 	private Clock(){
-		count=0;
-		lock=new ReentrantLock();
+		count = 0;
+		lock = new ReentrantLock();
 	}
 	
 	public static Clock getInstance(){
-		if(clock==null)
-			clock=new Clock();
+		if(clock == null)
+			clock = new Clock();
 		return clock;
 	}
 
