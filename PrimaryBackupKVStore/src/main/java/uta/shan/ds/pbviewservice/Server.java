@@ -2,10 +2,11 @@ import java.rmi.registry.Registry;
 import java.util.concurrent.Semaphore;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Map;
+import java.lang.Runnable;
 import java.util.HashMap;
 import java.rmi.registry.LocateRegistry;
 
-public class Server implements ServerBase{
+public class Server implements ServerBase,Runnable{
 	String host;//server host:port
 	int port;
 	String viewServer;//view service server host
@@ -143,22 +144,17 @@ public class Server implements ServerBase{
 		this.pm.start();
 	}
 
-	public static void main(String...args){
-		if(args.length<1){
-			System.err.println("args...host,port,view server host,view server port");
-			return;
-		}
-		Server server=new Server(args[0],Integer.parseInt(args[1]),args[2],Integer.parseInt(args[3]));
+	public void run(){
 		try{
 			System.setProperty("java.rmi.server.hostname",args[0]);
-			ServerBase stub=(ServerBase) UnicastRemoteObject.exportObject(server,0);
+			ServerBase stub=(ServerBase) UnicastRemoteObject.exportObject(this,0);
 			Registry registry=LocateRegistry.createRegistry(server.port);
 			registry.rebind("key/value store",stub);
 			System.out.println("key value store ready!");
 		}catch(Exception e){
 			e.printStackTrace();
 		}
-		server.StartPrimaryMonitor();
+		this.StartPrimaryMonitor();
 	}
 
 }

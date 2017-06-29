@@ -1,4 +1,4 @@
-package paxos;
+package uta.shan.ds.paxos;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -48,6 +48,11 @@ public class Paxos implements PaxosBase,Runnable{
 	//return instances for test
 	public Map<Integer,Instance> getMap(){
 		return this.map;
+	}
+	
+	//get value
+	public Object getOperation(int seq){
+		return this.map.get(seq).getValue();
 	}
 
 	//send all remote procedure calls

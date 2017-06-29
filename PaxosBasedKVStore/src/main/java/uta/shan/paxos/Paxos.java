@@ -1,4 +1,4 @@
-package paxos;
+package uta.shan.paxos;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -11,6 +11,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.RemoteException;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Random;
+
 public class Paxos implements PaxosBase,Runnable{
 	String[] peers;
 	int[] ports;
@@ -49,6 +50,11 @@ public class Paxos implements PaxosBase,Runnable{
 	public Map<Integer,Instance> getMap(){
 		return this.map;
 	}
+	
+	//get value
+	public Object getOperation(int seq){
+		return this.map.get(seq).getValue();
+	}
 
 	//send all remote procedure calls
 	public PaxosReply call(String rmiName,PaxosArg arg){
@@ -80,6 +86,7 @@ public class Paxos implements PaxosBase,Runnable{
 	//process prepare rpc
 	public PaxosReply ProcessPrepare(PaxosArg arg){
 		this.lock.lock();
+
 		PaxosReply reply=new PaxosReply();
 		int seq=arg.seq;
 		if(!this.map.containsKey(seq)) this.map.put(seq,makeInstance(seq,null));
@@ -92,6 +99,7 @@ public class Paxos implements PaxosBase,Runnable{
 				reply.pNumber=inst.accepted.pNumber;
 				reply.pValue=inst.accepted.pValue;
 			}
+
 			inst.pNumber=arg.pNumber;
 			this.map.put(seq,inst);
 		}

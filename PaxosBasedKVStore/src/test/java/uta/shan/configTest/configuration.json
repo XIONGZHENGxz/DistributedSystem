@@ -1,0 +1,24 @@
+{
+	"number of primary": "3",
+	"number of backup": "2",
+
+	"primary hosts": [
+		"kamek.ece.utexas.edu",
+		"koopa.ece.utexas.edu",
+		"luigi.ece.utexas.edu"
+	],
+
+	"backup hosts": [
+		"wario.ece.utexas.edu",
+		"toad.ece.utexas.edu"
+	],
+
+	"primary ports": [
+		"5555"
+	],
+
+	"backup ports": [
+		"6666"
+	]
+}
+
