@@ -1,0 +1,22 @@
+{
+	"number of primary": "2",
+	"number of backup": "1",
+
+	"primary hosts": [
+		"192.168.245.156",
+		"192.168.245.142"
+	],
+
+	"backup hosts": [
+		"192.168.245.184"
+	],
+
+	"primary ports": [
+		"5555"
+	],
+
+	"backup ports": [
+		"6666"
+	]
+}
+
