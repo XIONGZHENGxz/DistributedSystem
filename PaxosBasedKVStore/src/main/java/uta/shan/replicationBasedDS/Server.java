@@ -3,6 +3,9 @@ package uta.shan.replicationBasedDS;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Map;
 import java.util.HashMap;
+
+import uta.shan.communication.Util;
+import uta.shan.config.ConfigReader;
 import uta.shan.paxos2.*;
 
 
@@ -125,6 +128,18 @@ public class Server<K,V> {
 		agree(new Operation<K,V>(arg.getRid(), arg.getKey(),arg.getValue(),"put"));
 		lock.unlock();
 		return new Reply(null,true);
+	}
+
+
+	public static void main(String...args) {
+		int gid = Integer.parseInt(args[0]);
+		int id = Integer.parseInt(args[1]);
+		int[] nums = new int[2];
+		ConfigReader.readNumGroups(args[2],nums);
+		String[][] servers = new String[nums[0]][nums[1]];
+		int[][] ports = new int[nums[0]][nums[1]];
+		ConfigReader.readServers(args[1],servers,ports);
+		Server<Integer,Integer> server = new Server<>(id,gid,servers[gid],ports[gid], Util.clientPort);
 	}
 
 }

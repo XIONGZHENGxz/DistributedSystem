@@ -21,7 +21,7 @@ public class ConfigReader {
         JSONParser parser = new JSONParser();
         try {
             JSONObject jsonObject = (JSONObject) parser.parse(new FileReader(filePath));
-            JSONArray operations = (JSONArray) jsonObject.get("operations");
+            JSONArray operations = (JSONArray) jsonObject.get("Operations");
             copyTo(operations,ops);
         } catch (IOException | ParseException e) {
             e.printStackTrace();
@@ -39,6 +39,17 @@ public class ConfigReader {
             e.printStackTrace();
         }
 
+    }
+
+    public static void readNumGroups(String filePath, int[] nums) {
+        JSONParser parser = new JSONParser();
+        try {
+            JSONObject jsonObject = (JSONObject) parser.parse(new FileReader(filePath));
+            nums[0] = Integer.parseInt((String) jsonObject.get("number of group"));
+            nums[1] = Integer.parseInt((String) jsonObject.get("number of servers"));
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void readJson(String filePath,String[] primaryHosts,String[] backupHosts,int[] primaryPorts, int[] backupPorts) {
@@ -63,6 +74,26 @@ public class ConfigReader {
         } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void readServers(String filePath,String[][] servers,int[][] ports) {
+        JSONParser parser = new JSONParser();
+        try {
+            JSONObject jsonObject = (JSONObject) parser.parse(new FileReader(filePath));
+            for (int i = 0; i < servers.length; i++) {
+                JSONArray primaryServers = (JSONArray) jsonObject.get("group " + i + " primary hosts");
+                copyTo(primaryServers, servers[i]);
+                JSONArray pPorts = (JSONArray) jsonObject.get("group " + i + " primary ports");
+                if (pPorts.size() == 1) {
+                    String pport = (String) pPorts.iterator().next();
+                    replicate(Integer.parseInt(pport), ports[i]);
+                } else {
+                    copyTo(pPorts, ports[i]);
+                }
+            }
+        } catch (IOException | ParseException e) {
+                e.printStackTrace();
+            }
     }
 
     public static void replicate(int port, int[] ports) {

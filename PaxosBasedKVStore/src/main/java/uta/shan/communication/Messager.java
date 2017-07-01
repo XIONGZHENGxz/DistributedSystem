@@ -138,8 +138,8 @@ public class Messager {
 			PrintStream ps = new PrintStream(socket.getOutputStream());
 			ps.println(msg);
 		} catch (IOException e) {
-//			e.printStackTrace();
-            System.out.println("remote server "+host+" "+port+" is down!");
+			e.printStackTrace();
+//            System.out.println("remote server "+host+" "+port+" is down!");
 		}
 	}
 

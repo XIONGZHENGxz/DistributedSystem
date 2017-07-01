@@ -3,8 +3,9 @@ package uta.shan.fusionBasedDS;
 /**
  * Created by xz on 6/7/17.
  */
-import com.sun.javafx.collections.MappingChange;
+import uta.shan.common.InputGenerator;
 import uta.shan.communication.Messager;
+import uta.shan.communication.Util;
 import uta.shan.config.ConfigReader;
 
 import java.net.InetAddress;
@@ -19,11 +20,15 @@ public class Client {
     private String me;//host name
     private String[] servers;//server ip
     private int[] ports;//server port
+    private String[] fusedServers;
+    private int[] fusedPorts;
 
-    public Client(String me, String[] servers, int[] ports) {
+    public Client(String me, String[] servers, int[] ports, String[] fusedServers, int[] fusedPorts) {
         this.me = me;
         this.servers = servers;
         this.ports = ports;
+        this.fusedServers = fusedServers;
+        this.fusedPorts = fusedPorts;
     }
 
     public String getMe() {
@@ -52,8 +57,13 @@ public class Client {
         return reply;
     }
 
+    public void shutDown(int id) {
+        String status = Messager.sendAndWaitReply("shut down",servers[id],ports[id]);
+        if(Util.DEBUG) System.out.println("shut down result: "+status);
+    }
+
     public void doOperation(String op, Map<Integer,Integer> store) {
-        System.out.println(op);
+        if(Util.DEBUG) System.out.println(op);
         StringTokenizer st = new StringTokenizer(op);
         String res = "";
         String arg =st.nextToken();
@@ -67,6 +77,10 @@ public class Client {
         } else if(st.equals("remove")) {
             int key = Integer.parseInt(st.nextToken());
             store.remove(key);
+        } else if(st.equals("down")) {
+            int id = Integer.parseInt(st.nextToken());
+            shutDown(id);
+            Fusion.recover(servers,fusedServers,ports,fusedPorts);
         }
         System.out.println(res);
     }
@@ -93,14 +107,17 @@ public class Client {
         int[] fusedPorts = new int[nums[1]];
 
         ConfigReader.readJson(args[0],primaryHosts,fusedHosts,primaryPorts, fusedPorts);
-        System.out.println(me);
-        Client client = new Client(me, primaryHosts, primaryPorts);
+        InputGenerator.generateInput(Integer.parseInt(args[1]),args[2],nums[0]);
+        Client client = new Client(me, primaryHosts, primaryPorts,fusedHosts,fusedPorts);
         List<String> ops = new ArrayList<>();
-        ConfigReader.readOperations(args[1],ops);
-        System.out.println(ops.size());
-        for(String op: ops) {
-            client.doOperation(op,store);
+        ConfigReader.readOperations(args[2],ops);
+        long start = Util.getCurrTime();
+        for(int i=0;i<ops.size()-1;i++) {
+            client.doOperation(ops.get(i),store);
         }
+        long end = Util.getCurrTime();
+        System.out.println("Update time: "+(end-start));
+        client.doOperation(ops.get(ops.size()-1),store);
         for(int key: store.keySet()) {
             if(client.get(key) == store.get(key)) {
                 System.out.println("match");

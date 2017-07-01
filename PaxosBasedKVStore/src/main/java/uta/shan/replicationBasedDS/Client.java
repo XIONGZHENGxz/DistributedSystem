@@ -1,9 +1,13 @@
 package uta.shan.replicationBasedDS;
+import com.sun.javafx.collections.MappingChange;
 import org.omg.CORBA.TIMEOUT;
 import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
+import uta.shan.config.ConfigReader;
 
-import java.util.Random;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.*;
 
 public class Client<K,V>{
 	private String[][] servers;//one row is one group of servers
@@ -75,6 +79,19 @@ public class Client<K,V>{
 		return false;
 	}
 
+	public V doOperation(String arg, K key, V value, Map<K,V> store) {
+		if(arg.equals("put")) {
+			put(key,value);
+			store.put(key,value);
+		} else if(arg.equals("get")) {
+			 return get(key);
+		} else if(arg.equals("remove")) {
+		    remove(key);
+			store.remove(key);
+		}
+		return null;
+	}
+
 	//decide which group to get service
 	public int decideGroup(K key) {
 		return (int)getHashCode(key)%servers.length;
@@ -86,6 +103,50 @@ public class Client<K,V>{
 			return (Integer) key;
 		} else{
 			return key.hashCode();
+		}
+	}
+
+
+	public static void main(String...args) {
+		int[] nums = new int[2];
+		ConfigReader.readNumGroups(args[0],nums);
+		String me = "";
+		try {
+			me = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+		Map<Integer,Integer> store = new HashMap<>();
+		String[][] servers = new String[nums[0]][nums[1]];
+		int[][] ports = new int[nums[0]][nums[1]];
+		ConfigReader.readServers(args[0],servers,ports);
+		int[][] serverPorts = new int[nums[0]][nums[1]];
+		Arrays.fill(serverPorts,Util.clientPort);
+		Client<Integer,Integer> client = new Client<>(me,servers,serverPorts);
+		List<String> ops = new ArrayList<>();
+		ConfigReader.readOperations(args[1],ops);
+		for(String op: ops) {
+			StringTokenizer st = new StringTokenizer(op);
+			String arg = st.nextToken();
+			int key = -1;
+			int val = -1;
+			if(arg.equals("get") || arg.equals("remove")) key = Integer.parseInt(st.nextToken());
+			else if(arg.equals("put")) {
+				key = Integer.parseInt(st.nextToken());
+				val = Integer.parseInt(st.nextToken());
+			}
+			client.doOperation(arg,key,val,store);
+		}
+		for(int key: store.keySet()) {
+			if(client.get(key) == store.get(key)) {
+				System.out.println("match");
+			} else {
+				try {
+					throw new Exception("key "+key+" not match");
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 }
