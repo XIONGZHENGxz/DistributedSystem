@@ -58,7 +58,7 @@ public class Client {
     }
 
     public void shutDown(int id) {
-        String status = Messager.sendAndWaitReply("shut down",servers[id],ports[id]);
+        String status = Messager.sendAndWaitReply("shutDown",servers[id],ports[id]);
         if(Util.DEBUG) System.out.println("shut down result: "+status);
     }
 

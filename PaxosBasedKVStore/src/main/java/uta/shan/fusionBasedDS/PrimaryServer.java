@@ -72,7 +72,7 @@ public class PrimaryServer extends Server {
         } else if(arg.equals("recover")) {
             Messager.sendMsg(fusionHashMap,socket);
             res = null;
-        } else if(arg.equals("shut down")) {
+        } else if(arg.equals("shutDown")) {
             shutDown();
             res = "ok";
         } else {
