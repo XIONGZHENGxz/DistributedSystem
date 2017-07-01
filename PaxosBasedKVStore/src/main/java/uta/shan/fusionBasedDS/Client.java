@@ -72,12 +72,12 @@ public class Client {
             int value = Integer.parseInt(st.nextToken());
             res = put(key,value);
             store.put(key,value);
-        } else if(st.equals("get")) {
+        } else if(arg.equals("get")) {
             res = "get" + String.valueOf(get(Integer.parseInt(st.nextToken())));
-        } else if(st.equals("remove")) {
+        } else if(arg.equals("remove")) {
             int key = Integer.parseInt(st.nextToken());
             store.remove(key);
-        } else if(st.equals("down")) {
+        } else if(arg.equals("down")) {
             int id = Integer.parseInt(st.nextToken());
             shutDown(id);
             Fusion.recover(servers,fusedServers,ports,fusedPorts);
