@@ -4,7 +4,6 @@ package uta.shan.paxos2;
  * Created by xz on 6/1/17.
  */
 
-import com.sun.javafx.collections.MappingChange;
 import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
 
