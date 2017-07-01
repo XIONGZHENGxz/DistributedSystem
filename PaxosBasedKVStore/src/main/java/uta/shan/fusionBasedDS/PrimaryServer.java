@@ -30,13 +30,16 @@ public class PrimaryServer extends Server {
         listener.start();
     }
 
-    @Override
-    public void shutDown() {
+    public void close() {
         try {
             listener.getServerSocket().close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void shutDown() {
+
     }
 
     @Override

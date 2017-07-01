@@ -50,7 +50,6 @@ public class Fusion {
         }
 
         List<Map<Integer,FusedAuxNode>> indList = firstGood.getIndexList();
-        Map<Integer,FusedAuxNode> map = indList.get(0);
         double[][] matrix = getMatrix(flags,fusedFlags);
         if(Util.DEBUG) EquationSolver.printMat(matrix);
         DoubleLinkedList dataStack = firstGood.getDataStack();

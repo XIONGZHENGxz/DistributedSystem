@@ -50,7 +50,6 @@ public class FusedMap<E> implements Serializable {
             }
             tos[pid] = node;
             node.updateCode(0,newVal, pid, bid);
-            System.out.println("node: "+node.getValue());
             node.increRefCount();
             FusedAuxNode<E> a = new FusedAuxNode<>(node);
             node.insertAuxNode(pid,a);

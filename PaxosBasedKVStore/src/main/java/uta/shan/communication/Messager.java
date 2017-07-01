@@ -139,7 +139,6 @@ public class Messager {
 			ps.println(msg);
 		} catch (IOException e) {
 			e.printStackTrace();
-//            System.out.println("remote server "+host+" "+port+" is down!");
 		}
 	}
 

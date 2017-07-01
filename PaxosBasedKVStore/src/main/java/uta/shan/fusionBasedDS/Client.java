@@ -44,7 +44,6 @@ public class Client {
 
     public String put(int key, int value) {
         int ind = decideServer(key);
-        System.out.println("putting....");
         String request = "put "+Integer.toString(key)+" "+Integer.toString(value);
         String reply = Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
         return reply;
@@ -58,8 +57,12 @@ public class Client {
     }
 
     public void shutDown(int id) {
-        String status = Messager.sendAndWaitReply("shutDown",servers[id],ports[id]);
-        if(Util.DEBUG) System.out.println("shut down result: "+status);
+        Messager.sendMsg("shutDown",servers[id],ports[id]);
+    }
+
+    //resume server
+    public void resume(int id) {
+        Messager.sendMsg("resume",servers[id],ports[id]);
     }
 
     public void doOperation(String op, Map<Integer,Integer> store) {
@@ -73,20 +76,37 @@ public class Client {
             res = put(key,value);
             store.put(key,value);
         } else if(arg.equals("get")) {
-            res = "get" + String.valueOf(get(Integer.parseInt(st.nextToken())));
+            res = "get " + String.valueOf(get(Integer.parseInt(st.nextToken())));
         } else if(arg.equals("remove")) {
             int key = Integer.parseInt(st.nextToken());
             store.remove(key);
         } else if(arg.equals("down")) {
             int id = Integer.parseInt(st.nextToken());
             shutDown(id);
-            Fusion.recover(servers,fusedServers,ports,fusedPorts);
         }
-        System.out.println(res);
     }
 
     public int decideServer(int key) {
         return key%servers.length;
+    }
+
+    //compare
+    public boolean compare(Map<Integer,Integer> store) {
+        for(int key: store.keySet()) {
+            if(get(key) != store.get(key)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //check recover
+    public boolean checkRecover(FusionHashMap[] primaries, Map<Integer, Integer> store) {
+        for(int key: store.keySet()) {
+            int ind = decideServer(key);
+            if (primaries[ind].get(key) != store.get(key)) return false;
+        }
+        return true;
     }
 
     //test fusion ds
@@ -118,16 +138,8 @@ public class Client {
         long end = Util.getCurrTime();
         System.out.println("Update time: "+(end-start));
         client.doOperation(ops.get(ops.size()-1),store);
-        for(int key: store.keySet()) {
-            if(client.get(key) == store.get(key)) {
-                System.out.println("match");
-            } else {
-                try {
-                    throw new Exception("key "+key+" not match");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        FusionHashMap[] primaries = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        boolean ok = client.checkRecover(primaries,store);
+        System.out.println("recover result: "+ok);
     }
 }

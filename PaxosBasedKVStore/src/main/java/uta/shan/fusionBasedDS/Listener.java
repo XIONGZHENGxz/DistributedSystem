@@ -13,9 +13,12 @@ public class Listener extends Thread{
     private int port;
     private ServerSocket serverSocket;
     private Server server;
+    private boolean isAlive;
+
     public Listener(int port,Server server) {
         this.port = port;
         this.server = server;
+        isAlive = true;
     }
 
     public int getPort() {
@@ -41,9 +44,17 @@ public class Listener extends Thread{
                 if(Util.DEBUG){
                     System.out.println("get request from client: "+request);
                 }
-                String reply = server.handleRequest(request,socket);
-                if(reply!=null)
-                    Messager.sendMsg(reply,socket);
+                if(request.equals("shutDown")) isAlive = false;
+                else if(request.equals("resume")) isAlive = true;
+                else {
+                    if (isAlive) {
+                        String reply = server.handleRequest(request, socket);
+                        if (reply != null)
+                            Messager.sendMsg(reply, socket);
+                    } else {
+                        Messager.sendMsg(null,socket);
+                    }
+                }
             } catch (IOException e) {
                 System.out.println("server: "+server.getId()+" down!");
                 break;

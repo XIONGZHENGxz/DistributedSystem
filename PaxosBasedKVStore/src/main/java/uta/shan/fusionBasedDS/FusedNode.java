@@ -36,17 +36,6 @@ public class FusedNode<E> extends Node implements Serializable {
         value = Fusion.updateCode(value,oldVal,newVal,pid,bid);
     }
 
-    /*
-    public void removeElem(int oldElem, int pid, int bid) {
-        codeVal = Fusion.updateCode(codeVal, oldElem, 0, pid, bid);
-
-    }
-
-    public void addElem(int newElem, int pid, int bid) {
-        codeVal = Fusion.updateCode(codeVal,0, newElem, pid, bid);
-    }
-
-*/
     public FusedAuxNode<E> getAuxNode(int i) {
         return this.auxNodes[i];
     }

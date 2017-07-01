@@ -38,12 +38,10 @@ public class InputGenerator {
             }
         }
         ops.add("down "+ rand.nextInt(max));
-        System.out.println(ops.size()+" "+ops.get(0));
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("Operations", ops);
         try {
             FileWriter fw = new FileWriter(outputFile);
-            System.out.println(jsonObject.toJSONString());
             fw.write(jsonObject.toJSONString());
             fw.flush();
         } catch (Exception e) {
