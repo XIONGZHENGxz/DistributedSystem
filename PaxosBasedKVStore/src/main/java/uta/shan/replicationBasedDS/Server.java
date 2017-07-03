@@ -1,9 +1,11 @@
 package uta.shan.replicationBasedDS;
 
+import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Map;
 import java.util.HashMap;
 
+import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
 import uta.shan.config.ConfigReader;
 import uta.shan.paxos2.*;
@@ -51,6 +53,12 @@ public class Server<K,V> {
 		}
 	}
 
+	//get for testing
+	public void sendStore(Socket socket) {
+		catchup();
+		Messager.sendMsg(store,socket);
+	}
+
 	//read value
 	public Reply<V> get(Request<K,V> arg){
 		K key=arg.getKey();
@@ -76,6 +84,17 @@ public class Server<K,V> {
 			store.remove(op.getKey());
 		}
 		paxos.getLearner().doneSeq(seq);
+	}
+
+	//catch up
+	public void catchup() {
+		int i = seed+1;
+		while(true) {
+			Status status = paxos.getLearner().getStatus(i);
+			if(status == Status.PENDING) break;
+			else commitOperation(i,(Operation<K,V>)paxos.getLearner().getSeqMap().get(i).getValue());
+			i++;
+		}
 	}
 
 	//reach agreement
@@ -110,16 +129,14 @@ public class Server<K,V> {
 			if (status == Status.PENDING) {
 				paxos.startConcensus(seed, op);
 				Operation<K,V> agreed = (Operation<K,V>) reachAgreement(seed);
-				System.out.println("complete concensus..."+ seed + " "+agreed.getType());
+				if(Util.DEBUG) System.out.println(me+" complete concensus..."+ seed + " "+agreed.getType());
 				commitOperation(seed, agreed);
 				if(agreed.getRid().equals(op.getRid())) break;
-
-
-					} else if (status == Status.DECIDED)
+			} else if (status == Status.DECIDED)
 				commitOperation(seed, (Operation<K,V>) paxos.getLearner().getSeqMap().get(seed).getValue());
 		}
 	}
-		
+
 	//write value
 	public Reply<V> put(Request<K,V> arg){
 		lock.lock();
@@ -138,9 +155,8 @@ public class Server<K,V> {
 		ConfigReader.readNumGroups(args[2],nums);
 		String[][] servers = new String[nums[0]][nums[1]];
 		int[][] ports = new int[nums[0]][nums[1]];
-		ConfigReader.readServers(args[1],servers,ports);
+		ConfigReader.readServers(args[2],servers,ports);
 		Server<Integer,Integer> server = new Server<>(id,gid,servers[gid],ports[gid], Util.clientPort);
 	}
-
 }
 

@@ -47,7 +47,7 @@ public class SystemTester {
             primaryServers[i] = new PrimaryServer(fusedHosts,fusedPorts,i,primaryPorts[i]);
         }
 
-        client = new Client(LOCALHOST,primaryHosts,primaryPorts);
+        client = new Client(LOCALHOST,primaryHosts,primaryPorts,fusedHosts,fusedPorts);
 
     }
 

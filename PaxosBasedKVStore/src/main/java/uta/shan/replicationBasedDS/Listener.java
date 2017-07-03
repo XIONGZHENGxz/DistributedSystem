@@ -16,9 +16,12 @@ public class Listener<K,V> extends Thread{
     private int port;
     private ServerSocket serverSocket;
     private Server server;
+    private boolean isAlive;
+
     public Listener(int port, Server server) {
         this.port = port;
         this.server = server;
+        this.isAlive = true;
     }
 
     @Override
@@ -34,8 +37,20 @@ public class Listener<K,V> extends Thread{
                 Socket socket = serverSocket.accept();
                 Request<K,V> request = (Request<K, V>) Messager.getMsg(socket);
                 if(Util.DEBUG) System.out.println("get request from client: "+request.getType());
-                Reply<V> reply = server.handleRequest(request);
-                Messager.sendMsg(reply,socket);
+                if(request.getType().equals("shutDown")) {
+                    isAlive = false;
+                } else if(request.getType().equals("resume")) {
+                    isAlive = true;
+                }
+                if(isAlive) {
+                    if (request.getType().equals("getStore")) {
+                        server.sendStore(socket);
+                        continue;
+                    } else {
+                        Reply<V> reply = server.handleRequest(request);
+                        Messager.sendMsg(reply, socket);
+                    }
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -45,7 +45,7 @@ public class LRCTester {
             primaryPorts[i] = 6666;
         }
 
-        client = new Client("localhost",primaryHosts,primaryPorts);
+        client = new Client("localhost",primaryHosts,primaryPorts,fusedHosts,fusedPorts);
 
     }
 

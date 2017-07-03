@@ -67,7 +67,6 @@ public class Proposer<T>{
 			handlePrepareReply(reply);
 		} else {
 			Messager.sendMsg(request, host, port);
-			System.out.println(me+ " send prepare to "+id);
 		}
 	}
 

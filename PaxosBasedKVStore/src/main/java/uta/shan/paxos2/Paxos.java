@@ -40,7 +40,7 @@ public class Paxos<T> extends Thread{
     public void startConcensus(int seq,T value) {
         this.seq = seq;
         proposer.setValue(value);
-//        run();
+        run();
     }
 
     public void shutdown() {
@@ -114,7 +114,6 @@ public class Paxos<T> extends Thread{
             long currTime = Util.getCurrTime();
             boolean ok = false;
             while(currTime - startTime < Util.PAXOS_TIMEOUT) {
-                System.out.println("accNum: "+proposer.getPrepareAccNum());
                 if(proposer.getPrepareAccNum() > peers.length/2) {
                     ok = true;
                     break;
@@ -135,7 +134,6 @@ public class Paxos<T> extends Thread{
                 startTime = Util.getCurrTime();
                 currTime = Util.getCurrTime();
                 while(currTime - startTime < Util.PAXOS_TIMEOUT) {
-                    System.out.println("acceptNum: "+proposer.getAcceptAccNum());
                     if(proposer.getAcceptAccNum() > peers.length/2) {
                         ok = true;
                     }

@@ -2,6 +2,7 @@ package uta.shan.replicationBasedDS;
 import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
 import uta.shan.config.ConfigReader;
+import uta.shan.common.Comparator;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -34,6 +35,20 @@ public class Client<K,V>{
 	public String makeRequestId(){
 		int r = rand.nextInt(10000000);
 		return me+String.valueOf(r);
+	}
+
+	public void shutDown(int gid, int id) {
+		Messager.sendMsg(new Request<K,V>(null,null,null,"shutDown"),servers[gid][id],ports[gid][id]);
+	}
+
+	public void resume(int gid, int id) {
+		Messager.sendMsg(new Request<K,V>(null,null,null,"resume"),servers[gid][id],ports[gid][id]);
+	}
+
+	//get from a specific server for testing
+	public Map<K,V> getStore(int gid, int id) {
+		Request<K,V> request = new Request<>(null,null,null,"getStore");
+		return (Map<K, V>) Messager.sendAndWaitReply(request,servers[gid][id],ports[gid][id]);
 	}
 
 	//get
@@ -104,6 +119,31 @@ public class Client<K,V>{
 		}
 	}
 
+	//compare
+	public boolean compare(Map<K,V> store) {
+		for(K key: store.keySet()) {
+			V val = get(key);
+			if(Util.DEBUG) System.out.println(store.get(key)+" "+val);
+			if(!val.equals(store.get(key))) return false;
+		}
+		return true;
+	}
+
+	//check consistency
+	public boolean checkConsistency(Comparator<K,V> comparator) {
+		for(int i=0;i<servers.length;i++) {
+			Map<K, V> pre = null;
+			for (int j = 0; j < servers[i].length; j++) {
+				Map<K, V> store = getStore(i, j);
+				if(Util.DEBUG) System.out.println("store size: "+store.size());
+				if (j > 0) {
+					if (!comparator.compare(pre, store)) return false;
+				}
+				pre = store;
+			}
+		}
+		return true;
+	}
 
 	public static void main(String...args) {
 		int[] nums = new int[2];
@@ -119,12 +159,25 @@ public class Client<K,V>{
 		int[][] ports = new int[nums[0]][nums[1]];
 		ConfigReader.readServers(args[0],servers,ports);
 		int[][] serverPorts = new int[nums[0]][nums[1]];
-		Arrays.fill(serverPorts,Util.clientPort);
+		for(int i=0;i<serverPorts.length;i++) {
+			for(int j=0;j<serverPorts[i].length;j++) {
+				serverPorts[i][j] = Util.clientPort;
+			}
+		}
 		Client<Integer,Integer> client = new Client<>(me,servers,serverPorts);
 		List<String> ops = new ArrayList<>();
 		ConfigReader.readOperations(args[1],ops);
-		for(String op: ops) {
-			StringTokenizer st = new StringTokenizer(op);
+		int gid = -1, id = -1;
+		if(args[2].equals("true")) {
+			Random rand = new Random();
+			gid = rand.nextInt(servers.length);
+			id = rand.nextInt(servers[gid].length);
+			client.shutDown(gid,id);
+		}
+
+		long start = Util.getCurrTime();
+		for(int i=0;i<ops.size()-1;i++) {
+			StringTokenizer st = new StringTokenizer(ops.get(i));
 			String arg = st.nextToken();
 			int key = -1;
 			int val = -1;
@@ -135,17 +188,12 @@ public class Client<K,V>{
 			}
 			client.doOperation(arg,key,val,store);
 		}
-		for(int key: store.keySet()) {
-			if(client.get(key) == store.get(key)) {
-				System.out.println("match");
-			} else {
-				try {
-					throw new Exception("key "+key+" not match");
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
+		long end = Util.getCurrTime();
+		System.out.println("update time: "+(end-start));
+		if(args[2].equals("true")) client.resume(gid,id);
+
+		boolean check = client.checkConsistency(new Comparator<Integer, Integer>());
+		System.out.println("consistency result: "+check);
 	}
 }
 

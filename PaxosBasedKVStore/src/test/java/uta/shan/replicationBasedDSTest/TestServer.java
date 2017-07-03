@@ -4,9 +4,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import uta.shan.common.Comparator;
 import uta.shan.communication.Util;
+import uta.shan.config.ConfigReader;
 import uta.shan.replicationBasedDS.Server;
 import uta.shan.replicationBasedDS.Client;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.StringTokenizer;
 
 public class TestServer{
 	private static String[][] hosts;
@@ -14,9 +22,10 @@ public class TestServer{
 	private static int[][] paxosPorts;
 	private static Server<Integer,String>[][] servers;
 
+	private static String inputFile = "input.json";
 	private static final String LOCALHOST="localhost";
-	private static final int NUM_GROUPS = 2;
-	private static final int NUM_SERVERS_PER_GROUP = 3;
+	private static final int NUM_GROUPS = 1;
+	private static final int NUM_SERVERS_PER_GROUP = 2;
 
 	@BeforeClass
 	public static void init(){
@@ -52,13 +61,29 @@ public class TestServer{
 	public void test2(){
 		Client<Integer,String> client = new Client<>(LOCALHOST,hosts,ports);
 		client.put(2,"Google");
-//		assertTrue(client.get(2).equals("Google"));
+		assertTrue(client.get(2).equals("Google"));
 		assertTrue(client.remove(2));
 		assertTrue(client.get(2) == null);
 	}
 
 	@Test
 	public void test3() {
-		Client<Integer,String> client = new Client<>(LOCALHOST,hosts,ports);
+		Client<Integer,Integer> client = new Client<>(LOCALHOST,hosts,ports);
+		Map<Integer,Integer> store = new HashMap<>();
+		List<String> ops = new ArrayList<>();
+		ConfigReader.readOperations(inputFile,ops);
+		for(int i=0;i<ops.size()-1;i++) {
+			StringTokenizer st = new StringTokenizer(ops.get(i));
+			String arg = st.nextToken();
+			int key = -1;
+			int val = -1;
+			if (arg.equals("get") || arg.equals("remove")) key = Integer.parseInt(st.nextToken());
+			else if (arg.equals("put")) {
+				key = Integer.parseInt(st.nextToken());
+				val = Integer.parseInt(st.nextToken());
+			}
+			client.doOperation(arg, key, val, store);
+		}
+		assertTrue(client.checkConsistency(new Comparator<Integer, Integer>()));
 	}
 }

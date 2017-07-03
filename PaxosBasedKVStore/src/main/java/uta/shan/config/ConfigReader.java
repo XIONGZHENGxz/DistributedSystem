@@ -106,9 +106,8 @@ public class ConfigReader {
 
     public static void copyTo(JSONArray array, String[] list) {
         Iterator<String> iterator = array.iterator();
-        int ind = 0;
-        while(iterator.hasNext()) {
-            list[ind++] = iterator.next();
+        for(int i=0;i<list.length;i++) {
+            list[i] = iterator.next();
         }
     }
 
