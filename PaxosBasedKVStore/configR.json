@@ -1,0 +1,16 @@
+{
+	"number of group": "1",
+	"number of servers": "3",
+
+	"group 0 primary hosts": [
+		"192.168.245.184",
+		"192.168.245.156",
+		"192.168.245.142"
+	],
+
+	"group 0 primary ports": [
+		"5555"
+	]
+
+}
+
