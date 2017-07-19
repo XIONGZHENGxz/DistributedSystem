@@ -17,6 +17,7 @@ public class Fusion {
     public static Object updateCode(Object oldCode, Object oldVal, Object newVal, int pid, int bid) {
         Object newCode;
         if(oldCode instanceof Integer) {
+            if(oldVal == null) oldVal = 0;
             newCode = (int)oldCode + (int) Math.pow(pid + 1, bid) * ((int)newVal - (int)oldVal);
             if (Util.DEBUG) {
                 System.out.println("update code...oldVal: " + oldVal + " newVal: " + newVal + " pid: " + pid + " bid: " + bid);
@@ -34,7 +35,7 @@ public class Fusion {
         int n = primaryHosts.length;
         int f = fusedHosts.length;
         boolean[] flags = new boolean[n];
-        FusionHashMap[] primaryMaps = getPrimaries(primaryHosts, primaryPorts, flags);
+        FusionHashMap<Integer, Integer>[] primaryMaps = getPrimaries(primaryHosts, primaryPorts, flags);
         boolean[] fusedFlags = new boolean[f];
         FusedMap[] fusedMaps = getFused(fusedHosts,fusedPorts,fusedFlags,n);
         if(Util.DEBUG) {
@@ -59,10 +60,11 @@ public class Fusion {
             List<Integer> keysOfPrimaries = new ArrayList<>();//the keys of primaries contained in this fusednode
             int firstInd = -1;//first index of primary that is good
             for(int i=0;i<n;i++) {
-                FusedAuxNode auxNode = node.getAuxNode(i);
+                FusedAuxNode<Integer> auxNode = (FusedAuxNode<Integer>) node.getAuxNode(i);
                 int key = -1;
                 if(auxNode !=null) {
                     key = getKey(indList.get(i),auxNode);
+                    System.out.println("k: "+key);
                     if(firstInd == -1) firstInd = i;
                 }
                 keysOfPrimaries.add(key);
@@ -73,7 +75,10 @@ public class Fusion {
 
             for(int j=0;j<f;j++) {
                 if(fusedFlags[j] && row<n) {
-                    Map<Integer,FusedAuxNode> tmp = (Map<Integer,FusedAuxNode>) fusedMaps[j].getIndexList().get(firstInd);
+                    Map<Integer,FusedAuxNode> tmp =
+                            (Map<Integer,FusedAuxNode>) fusedMaps[j].getIndexList().get(firstInd);
+                    System.out.println("key: "+keysOfPrimaries.get(firstInd));
+                    System.out.println(tmp.containsKey(keysOfPrimaries));
                     FusedNode fusedNode = tmp.get(keysOfPrimaries.get(firstInd)).getFusedNode();
                     Integer val = (Integer) fusedNode.getValue();
                     matrix[row++][n] = val.doubleValue();
@@ -171,7 +176,7 @@ public class Fusion {
         if(Util.DEBUG) {
             System.out.println("Debug: try to get data from "+host+" "+port);
         }
-        return Messager.sendAndWait("recover",host, port);
+        return Messager.sendAndWaitReply(new Request(RequestType.RECOVER,null),host, port);
     }
 
 }

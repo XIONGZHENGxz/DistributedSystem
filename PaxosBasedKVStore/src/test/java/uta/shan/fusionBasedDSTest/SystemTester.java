@@ -13,9 +13,9 @@ import uta.shan.fusionBasedDS.*;
 
 public class SystemTester {
     private static String LOCALHOST = "localhost";
-    private static Client client;
-    private static PrimaryServer[] primaryServers;
-    private static FusedServer[] fusedServers;
+    private static Client<Integer, Integer> client;
+    private static PrimaryServer<Integer, Integer>[] primaryServers;
+    private static FusedServer<Integer,Integer>[] fusedServers;
 
     private static String[] fusedHosts;
     private static int[] fusedPorts;
@@ -53,32 +53,33 @@ public class SystemTester {
 
     @Test
     public void test1() {
+        System.out.println(RequestType.APPEND.toString());
         assertTrue(client.getMe() == LOCALHOST);
-        assertTrue(client.get(0) == -1);
-        assertTrue(client.put(2,1).equals("put success"));
+        assertTrue(client.get(0) == null);
+        assertTrue(client.put(2,1) == Status.OK);
         assertTrue(client.get(2) == 1);
-        assertTrue(client.put(2,2).equals("put success"));
+        assertTrue(client.put(2,2) == Status.OK);
         assertTrue(client.get(2) == 2);
-        assertTrue(client.remove(2).equals("remove success"));
+        assertTrue(client.remove(2) == Status.OK);
         assertTrue(fusedServers[0].getMap().getDataStack().isEmpty());
     }
 
 
     @Test
     public void test2() {
-        assertTrue(client.put(0,1000).equals("put success"));
+        assertTrue(client.put(0,1000) == Status.OK);
         assertTrue(client.get(0) == 1000);
         assertTrue(fusedServers[0].getMap().get(0,0) == 1000);
-        assertTrue(client.remove(0).equals("remove success"));
-        assertTrue(client.remove(10).equals("key not exists!"));
+        assertTrue(client.remove(0) == Status.OK);
+        assertTrue(client.remove(10) == Status.NE);
         assertTrue(fusedServers[0].getMap().getDataStack().isEmpty());
     }
 
     @Test
     public void test3() {
-        assertTrue(client.put(0,1000).equals("put success"));
+        assertTrue(client.put(0,1000) == Status.OK);
         assertTrue(client.get(0) == 1000);
-        assertTrue(client.put(1,500).equals("put success"));
+        assertTrue(client.put(1,500) == Status.OK);
         assertTrue(client.get(1) == 500);
         assertTrue(fusedServers[0].getMap().get(1,1) == 1500);
         assertTrue(fusedServers[0].getMap().get(0,0) == 1500);
@@ -90,6 +91,11 @@ public class SystemTester {
         client.put(1,500);
         client.put(2,2000);
         client.put(3,1500);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+
+        }
         assertTrue(fusedServers[0].getMap().get(0,2) == 3500);
         assertTrue(fusedServers[0].getMap().getDataStack().getSize() == 2);
         assertTrue(fusedServers[1].getMap().get(0,0) == 2000);
@@ -104,6 +110,11 @@ public class SystemTester {
         client.put(1,500);
         client.put(0,2000);
         client.put(1,1000);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+
+        }
         assertTrue(fusedServers[0].getMap().get(0,0) == 3000);
         assertTrue(fusedServers[0].getMap().getDataStack().getSize() == 1);
         assertTrue(fusedServers[1].getMap().get(0,0) == 4000);
@@ -117,6 +128,11 @@ public class SystemTester {
         client.put(2,2000);
         client.put(3,1500);
         client.remove(2);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+
+        }
         assertTrue(fusedServers[0].getMap().get(0, 2) == null);
         assertTrue(fusedServers[0].getMap().getDataStack().getSize() == 2);
         assertTrue(fusedServers[0].getMap().get(1, 3) == 1500);
@@ -130,7 +146,7 @@ public class SystemTester {
     @Test
     public void test7() {
         primaryServers[0].shutDown();
-        assertTrue(client.put(0,1) == null);
+        assertTrue(client.put(0,1) == Status.ERR);
     }
 
     @Test
@@ -148,7 +164,7 @@ public class SystemTester {
         FusedMap[] fusedMaps = Fusion.getFused(fusedHosts,fusedPorts,fusedFlags,numPrimaries);
         assertTrue(fusedFlags[0]==true);
         assertTrue(fusedFlags[1]==true);
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -163,7 +179,7 @@ public class SystemTester {
         client.put(3,1500);
         primaryServers[0].shutDown();
         primaryServers[1].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -178,7 +194,7 @@ public class SystemTester {
         client.put(3,1500);
         primaryServers[0].shutDown();
         fusedServers[0].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -193,7 +209,7 @@ public class SystemTester {
         client.put(3,1500);
         primaryServers[1].shutDown();
         fusedServers[0].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -208,7 +224,7 @@ public class SystemTester {
         client.put(3,1500);
         primaryServers[1].shutDown();
         fusedServers[1].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);

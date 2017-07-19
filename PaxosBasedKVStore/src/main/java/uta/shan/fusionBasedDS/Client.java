@@ -10,13 +10,10 @@ import uta.shan.config.ConfigReader;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.StringTokenizer;
+import java.util.*;
 
-public class Client {
+
+public class Client<K,V> {
     private String me;//host name
     private String[] servers;//server ip
     private int[] ports;//server port
@@ -35,29 +32,33 @@ public class Client {
         return this.me;
     }
 
-    public int get(int key) {
+    public V get(K key) {
         int ind = decideServer(key);
-        String request = "get "+Integer.toString(key);
-        String reply = Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
-        return Integer.parseInt(reply);
+        Request<K,V> request = new Request<>(RequestType.GET, key);
+        Reply<V> reply = (Reply<V>) Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
+        if(reply == null || reply.getStatus() != Status.OK) return null;
+        return reply.getVal();
     }
 
-    public String put(int key, int value) {
+    public Status put(K key, V value) {
         int ind = decideServer(key);
-        String request = "put "+Integer.toString(key)+" "+Integer.toString(value);
-        String reply = Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
-        return reply;
+        System.out.println("which server: "+ind);
+        Request<K,V> request = new Request<>(RequestType.PUT, key, value);
+        Reply<V> reply = (Reply<V>) Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
+        if(reply == null) return Status.ERR;
+        return reply.getStatus();
     }
 
-    public String remove(int key) {
+    public Status remove(K key) {
         int ind = decideServer(key);
-        String request = "remove "+Integer.toString(key);
-        String reply = Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
-        return reply;
+        Request<K,V> request = new Request<>(RequestType.REMOVE, key);
+        Reply<V> reply = (Reply<V>) Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
+        return reply.getStatus();
     }
 
     public void shutDown(int id) {
-        Messager.sendMsg("shutDown",servers[id],ports[id]);
+        Request<K,V> request = new Request<>(RequestType.DOWN, null);
+        Messager.sendMsg(request, servers[id], ports[id]);
     }
 
     //resume server
@@ -65,34 +66,32 @@ public class Client {
         Messager.sendMsg("resume",servers[id],ports[id]);
     }
 
-    public void doOperation(String op, Map<Integer,Integer> store) {
-        if(Util.DEBUG) System.out.println(op);
-        StringTokenizer st = new StringTokenizer(op);
-        String res = "";
-        String arg =st.nextToken();
+    public void doOperation(String arg, K key, V value, Map<K,V> store) {
         if(arg.equals("put")) {
-            int key = Integer.parseInt(st.nextToken());
-            int value = Integer.parseInt(st.nextToken());
-            res = put(key,value);
+            put(key,value);
             store.put(key,value);
         } else if(arg.equals("get")) {
-            res = "get " + String.valueOf(get(Integer.parseInt(st.nextToken())));
         } else if(arg.equals("remove")) {
-            int key = Integer.parseInt(st.nextToken());
+            Status ok = remove(key);
+            if(Util.DEBUG) System.out.println("remove "+key.toString()+ " "+ok.toString());
             store.remove(key);
         } else if(arg.equals("down")) {
-            int id = Integer.parseInt(st.nextToken());
+            int id = (Integer) value;
             shutDown(id);
         }
     }
 
-    public int decideServer(int key) {
-        return key%servers.length;
+    public int decideServer(K key) {
+        if(key instanceof Integer) {
+            int k = (Integer) key;
+            return k % servers.length;
+        }
+        else return 0;
     }
 
     //compare
-    public boolean compare(Map<Integer,Integer> store) {
-        for(int key: store.keySet()) {
+    public boolean compare(Map<K,V> store) {
+        for(K key: store.keySet()) {
             if(get(key) != store.get(key)) {
                 return false;
             }
@@ -101,8 +100,8 @@ public class Client {
     }
 
     //check recover
-    public boolean checkRecover(FusionHashMap[] primaries, Map<Integer, Integer> store) {
-        for(int key: store.keySet()) {
+    public boolean checkRecover(FusionHashMap[] primaries, Map<K, V> store) {
+        for(K key: store.keySet()) {
             int ind = decideServer(key);
             if (primaries[ind].get(key) != store.get(key)) return false;
         }
@@ -127,17 +126,21 @@ public class Client {
         int[] fusedPorts = new int[nums[1]];
 
         ConfigReader.readJson(args[0],primaryHosts,fusedHosts,primaryPorts, fusedPorts);
-        InputGenerator.generateInput(Integer.parseInt(args[1]),args[2],nums[0]);
-        Client client = new Client(me, primaryHosts, primaryPorts,fusedHosts,fusedPorts);
+        Client<Integer, Integer> client = new Client(me, primaryHosts, primaryPorts,fusedHosts,fusedPorts);
         List<String> ops = new ArrayList<>();
-        ConfigReader.readOperations(args[2],ops);
+        ConfigReader.readOperations(args[1],ops);
         long start = Util.getCurrTime();
-        for(int i=0;i<ops.size()-1;i++) {
-            client.doOperation(ops.get(i),store);
+        for(int i=0;i<ops.size();i++) {
+            StringTokenizer st = new StringTokenizer(ops.get(i));
+            String arg = st.nextToken();
+            int key = Integer.parseInt(st.nextToken());
+            int val = st.hasMoreTokens() ? Integer.parseInt(st.nextToken()) : -1;
+            client.doOperation(arg, key, val,store);
         }
         long end = Util.getCurrTime();
         System.out.println("Update time: "+(end-start));
-        client.doOperation(ops.get(ops.size()-1),store);
+        Random rand = new Random();
+//        client.doOperation("down",null, rand.nextInt(nums[0]), store);
         FusionHashMap[] primaries = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         boolean ok = client.checkRecover(primaries,store);
         System.out.println("recover result: "+ok);

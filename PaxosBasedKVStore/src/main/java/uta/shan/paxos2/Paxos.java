@@ -9,6 +9,8 @@ import uta.shan.communication.Util;
 
 import java.io.IOException;
 import java.lang.Thread;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Map;
 
@@ -20,6 +22,8 @@ public class Paxos<T> extends Thread{
     private Acceptor<T> acceptor;
     private Learner<T> learner;
     private Listener<T> listener;
+    private CountDownLatch prepareLatch;
+    private CountDownLatch acceptLatch;
 
     private int seq;
     private int[] dones;//record the seq number agreed by each peer
@@ -32,9 +36,11 @@ public class Paxos<T> extends Thread{
         lock = new ReentrantLock();
         listener = new Listener<>(ports[myId],this);
         listener.start();
+        prepareLatch = new CountDownLatch(1);
+        acceptLatch = new CountDownLatch(1);
         learner = new Learner<>(myId,peers,ports);
         acceptor = new Acceptor<>(peers,ports,myId,learner.getSeqMap());
-        proposer = new Proposer<>(myId,peers,ports,acceptor);
+        proposer = new Proposer<>(myId,peers,ports,acceptor,prepareLatch,acceptLatch);
     }
 
     public void startConcensus(int seq,T value) {
@@ -94,6 +100,13 @@ public class Paxos<T> extends Thread{
         return p.getValue();
     }
 
+    //reset
+    public void reset() {
+        prepareLatch = new CountDownLatch(1);
+        acceptLatch = new CountDownLatch(1);
+        proposer.reset(prepareLatch,acceptLatch);
+    }
+
     @Override
     public void run() {
         if(Util.DEBUG){
@@ -106,43 +119,28 @@ public class Paxos<T> extends Thread{
         }
         */
         while(true) {
-            //prepare phase
             if(Util.DEBUG)  System.out.println("start prepare phase..."+seq+" "+proposer.getValue());
-            proposer.reset();
+            reset();
+
+            //prepare phase
             proposer.BroadcastPrepare(seq);
-            long startTime = Util.getCurrTime();
-            long currTime = Util.getCurrTime();
             boolean ok = false;
-            while(currTime - startTime < Util.PAXOS_TIMEOUT) {
-                if(proposer.getPrepareAccNum() > peers.length/2) {
-                    ok = true;
-                    break;
-                }
-                try {
-                    Thread.sleep(500);
-                } catch (Exception e ){
-                    e.printStackTrace();
-                }
-                currTime = Util.getCurrTime();
+            try {
+                ok = prepareLatch.await(Util.PAXOS_TIMEOUT, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
             if(!ok && Util.DEBUG) System.out.println("prepare time out "+proposer.getPrepareAccNum());
+            if(ok && Util.DEBUG) System.out.println("prepare phase ok");
 
             //accept phase
             if(ok) {
                 ok = false;
                 proposer.BroadcaseAccept(seq,proposer.getProposal());
-                startTime = Util.getCurrTime();
-                currTime = Util.getCurrTime();
-                while(currTime - startTime < Util.PAXOS_TIMEOUT) {
-                    if(proposer.getAcceptAccNum() > peers.length/2) {
-                        ok = true;
-                    }
-                    try {
-                        Thread.sleep(500);
-                    } catch (Exception e ){
-                        e.printStackTrace();
-                    }
-                    currTime = Util.getCurrTime();
+                try {
+                    ok = acceptLatch.await(Util.PAXOS_TIMEOUT,TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
 
@@ -152,12 +150,6 @@ public class Paxos<T> extends Thread{
                 if(Util.DEBUG) System.out.println("accept phase ok..." + seq+" "+proposer.getProposal().getValue());
                 learner.BroadcastDecision(seq,proposer.getProposal());
                 return;
-            }
-
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
     }

@@ -45,8 +45,8 @@ public class TestNewPaxos {
 			Instance inst = (Instance) paxos[i].getLearner().getSeqMap().get(seq);
 			if(inst != null){
 				s = inst.getStatus();
-				Object dVal=inst.getProposal().getValue();
 				if(s == Status.DECIDED){
+					Object dVal = inst.getProposal().getValue();
 					if(count>0 && !value.equals(dVal)) return -1;
 					count++;
 					value = dVal;

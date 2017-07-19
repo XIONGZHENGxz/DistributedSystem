@@ -1,5 +1,6 @@
 package uta.shan.paxos2;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
 import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
@@ -13,11 +14,13 @@ public class Proposer<T>{
 	private Proposal<T> proposal;
 	private Acceptor<T> acceptor;
 
-	public int prepareAccNum;
-	public int acceptAccNum;
-	public int maxNum;
+	private int prepareAccNum;
+	private CountDownLatch prepareLatch;
+	private int acceptAccNum;
+	private CountDownLatch acceptLatch;
+	private int maxNum;
 
-	public Proposer(int me, String[] peers,int[] ports, Acceptor<T> acceptor) {
+	public Proposer(int me, String[] peers,int[] ports, Acceptor<T> acceptor, CountDownLatch prepareLatch, CountDownLatch acceptLatch) {
 		prepareAccNum = 0;
 		acceptAccNum = 0;
 		maxNum = 0;
@@ -26,6 +29,8 @@ public class Proposer<T>{
 		this.ports = ports;
 		this.acceptor = acceptor;
 		lock = new ReentrantLock();
+		this.prepareLatch = prepareLatch;
+		this.acceptLatch = acceptLatch;
 		proposal = new Proposal<>();
 	}
 
@@ -112,6 +117,7 @@ public class Proposer<T>{
 					proposal.setVal(reply.getVal());
 			}
 		}
+		if(prepareAccNum > peers.length/2) prepareLatch.countDown();
 	}
 
 
@@ -120,6 +126,7 @@ public class Proposer<T>{
 		if(Util.DEBUG) System.out.println("accept reply status..."+reply.getStatus()+" "+me);
 		if(reply.getStatus() != null && reply.getStatus().equals("ok"))
 			acceptAccNum++;
+		if(acceptAccNum > peers.length/2) acceptLatch.countDown();
 	}
 
 	//get Proposal
@@ -128,10 +135,12 @@ public class Proposer<T>{
 	}
 
 	//reset
-	public void reset() {
+	public void reset(CountDownLatch prepareLatch,CountDownLatch acceptLatch) {
 		prepareAccNum = 0;
 		acceptAccNum = 0;
 		maxNum = 0;
+		this.prepareLatch = prepareLatch;
+		this.acceptLatch = acceptLatch;
 	}
 }
 

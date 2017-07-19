@@ -11,89 +11,89 @@ import java.util.Map;
 /**
  * Created by xz on 6/8/17.
  */
-public class FusedMap<E> implements Serializable {
+public class FusedMap<K,V> implements Serializable {
     final static long serialVersionUID=1L;
-    private List<Map<Integer,FusedAuxNode>> indexList;
-    private FusedNode[] tos;
-    private DoubleLinkedList<E> dataStack;
+    private List<Map<K,FusedAuxNode<V>>> indexList;
+    private FusedNode<V>[] tos;
+    private DoubleLinkedList<V> dataStack;
     private int numPrimaries;
 
     public FusedMap(int numPrimaries) {
         this.numPrimaries = numPrimaries;
         indexList = new ArrayList<>();
-        for(int i=0;i<numPrimaries;i++) indexList.add(new HashMap<Integer, FusedAuxNode>());
+        for(int i=0;i<numPrimaries;i++) indexList.add(new HashMap<K, FusedAuxNode<V>>());
         tos = new FusedNode[numPrimaries];
         dataStack = new DoubleLinkedList<>();
         this.numPrimaries = numPrimaries;
     }
 
-    public void put(int key, int newVal, int oldVal, int pid, int bid){
+    public void put(K key, V oldVal, V newVal, int pid, int bid){
         if(indexList.get(pid).containsKey(key)) {
             FusedNode f = indexList.get(pid).get(key).getFusedNode();
             f.updateCode(oldVal,newVal,pid, bid);
         } else {
-            if(oldVal != -1){
+            if(oldVal != null){
                 try {
                     new Exception("primary contains this key,backup doesn't!");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-            FusedNode<E> node;
+            FusedNode<V> node;
             if(dataStack.isEmpty() || dataStack.getTailNode() == tos[pid]) {
                 node = new FusedNode<>(numPrimaries);
                 dataStack.add(node);
             } else if(tos[pid] == null) {
-                node = (FusedNode<E>) dataStack.getHeadNode();
+                node = (FusedNode<V>) dataStack.getHeadNode();
             } else {
-                node = (FusedNode<E>) tos[pid].getNext();
+                node = (FusedNode<V>) tos[pid].getNext();
             }
             tos[pid] = node;
-            node.updateCode(0,newVal, pid, bid);
+            node.updateCode(null,newVal, pid, bid);
             node.increRefCount();
-            FusedAuxNode<E> a = new FusedAuxNode<>(node);
+            FusedAuxNode<V> a = new FusedAuxNode<>(node);
             node.insertAuxNode(pid,a);
             indexList.get(pid).put(key,a);
         }
     }
 
-    public boolean remove(int key, int valToRemove, int valOfLast, int bid, int pid) {
-        System.out.println("bid: "+bid+" "+indexList.get(pid).containsKey(key));
+    public boolean remove(K key, V valToRemove, V valOfLast, int bid, int pid) {
+        if(Util.DEBUG) System.out.println("bid: "+bid+" "+indexList.get(pid).containsKey(key));
         if(!indexList.get(pid).containsKey(key)) return false;
-        FusedAuxNode<E> fusedAuxNode = indexList.get(pid).remove(key);
-        FusedNode<E> fusedNode = fusedAuxNode.getFusedNode();
+        FusedAuxNode<V> fusedAuxNode = indexList.get(pid).remove(key);
+        FusedNode<V> fusedNode = fusedAuxNode.getFusedNode();
         if(fusedNode != tos[pid]) {
             fusedNode.updateCode(valToRemove,valOfLast,pid,bid);
-            FusedAuxNode<E> lastAuxNode = tos[pid].getAuxNode(pid);
+            FusedAuxNode<V> lastAuxNode = tos[pid].getAuxNode(pid);
             lastAuxNode.setFusedNode(fusedNode);
             fusedNode.insertAuxNode(pid,lastAuxNode);
             tos[pid].insertAuxNode(pid, null);
         }
-        tos[pid].updateCode(valOfLast,0,pid, bid);
+        tos[pid].updateCode(valOfLast,null,pid, bid);
         tos[pid].decreRefCount();
         if(tos[pid].isEmpty()) {
             dataStack.pop();
         }
-        tos[pid] = tos[pid].getPre()==dataStack.getHead()?null:((FusedNode<E>) tos[pid].getPre());
+        tos[pid] = tos[pid].getPre()==dataStack.getHead()?null:((FusedNode<V>) tos[pid].getPre());
         return true;
     }
 
-    public List<Map<Integer,FusedAuxNode>> getIndexList() {
+    public List<Map<K,FusedAuxNode<V>>> getIndexList() {
         return this.indexList;
     }
 
-    public E get(int pid, int key) {
-        FusedAuxNode<E> auxNode = indexList.get(pid).get(key);
+    public V get(int pid, int key) {
+        FusedAuxNode<V> auxNode = indexList.get(pid).get(key);
         if(auxNode == null) return null;
 
-        FusedNode<E> node = auxNode.getFusedNode();
+        FusedNode<V> node = auxNode.getFusedNode();
         if(Util.DEBUG) {
             System.out.println("Debug: "+"pid: "+pid+" key: "+key+" val: "+node.getValue());
         }
-        return (E) node.getValue();
+        return (V) node.getValue();
     }
 
-    public DoubleLinkedList<E> getDataStack() {
+    public DoubleLinkedList<V> getDataStack() {
         return this.dataStack;
     }
 }

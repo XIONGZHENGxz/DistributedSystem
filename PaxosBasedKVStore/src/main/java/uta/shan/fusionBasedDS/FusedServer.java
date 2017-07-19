@@ -6,21 +6,23 @@ import uta.shan.config.ConfigReader;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.StringTokenizer;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by xz on 6/7/17.
  */
-public class FusedServer extends Server{
+public class FusedServer<K,V> extends Server<K,V>{
     private Listener listener;
-    private FusedMap<Integer> fusedMap;
+    private FusedMap<K,V> fusedMap;
     private String me;
+    private ReentrantLock lock;
 
     public FusedServer(int port,int numPrimaries,int bid) {
         fusedMap = new FusedMap<>(numPrimaries);
         id = bid;
         listener = new Listener(port,this);
         listener.start();
+        lock = new ReentrantLock();
     }
 
     @Override
@@ -32,32 +34,28 @@ public class FusedServer extends Server{
         }
     }
 
-    @Override
-    public String handleRequest(String msg, Socket socket) {
-        StringTokenizer st = new StringTokenizer(msg);
-        String arg = st.nextToken();
-        if(arg.equals("put")) {
-            int key = Integer.parseInt(st.nextToken());
-            int newVal = Integer.parseInt(st.nextToken());
-            int oldVal = Integer.parseInt(st.nextToken());
-            int pid = Integer.parseInt(st.nextToken());
-            fusedMap.put(key,newVal,oldVal,pid,id);
+    public Reply<V> handleRequest(Request<K,V> request, Socket socket) {
+        lock.lock();
+        RequestType type = request.getType();
+        K key = request.getKey();
+        V first = request.getFirst();
+        V second = request.getSecond();
+        Reply<V> reply = new Reply<>();
+        int pid = request.getId();
+
+        if(type == RequestType.PUT) {
+            fusedMap.put(key,first,second,pid,id);
             if(Util.DEBUG) {
-                System.out.println("debug...");
                 FusedNode<Integer> fnode = (FusedNode<Integer>) getMap().getDataStack().getHeadNode();
                 System.out.println(fnode.getValue()+" "+fnode.getRefCount());
             }
-            return "update success!";
-        } else if(arg.equals("remove")) {
-            int key = Integer.parseInt(st.nextToken());
-            int valToRemove = Integer.parseInt(st.nextToken());
-            int valOfLast = Integer.parseInt(st.nextToken());
-            int pid = Integer.parseInt(st.nextToken());
-            boolean ok = fusedMap.remove(key,valToRemove,valOfLast, id,pid);
-            return "remove "+(ok?"success":"failure");
-        } else if(arg.equals("recover")) {
+            reply.setStatus(Status.OK);
+        } else if(type == RequestType.REMOVE) {
+            boolean ok = fusedMap.remove(key,first,second, id,pid);
+            reply.setStatus(ok ? Status.OK : Status.ERR);
+        } else if(type == RequestType.RECOVER) {
             Messager.sendMsg(fusedMap,socket);
-            return null;
+            reply.setStatus(Status.OK);
         } else {
             try {
                 throw new Exception("Invalid operation!");
@@ -65,10 +63,11 @@ public class FusedServer extends Server{
                 e.printStackTrace();
             }
         }
-        return "";
+        lock.unlock();
+        return reply;
     }
 
-    public FusedMap<Integer> getMap() {
+    public FusedMap<K,V> getMap() {
         return this.fusedMap;
     }
 
@@ -82,6 +81,6 @@ public class FusedServer extends Server{
         int[] primaryPorts = new int[nums[0]];
         String[] primaryHosts = new String[nums[0]];
         ConfigReader.readJson(args[0],primaryHosts,backupHosts,primaryPorts,backupPorts);
-        FusedServer fusedServer = new FusedServer(backupPorts[me],primaryHosts.length,me);
+        FusedServer<Integer, Integer> fusedServer = new FusedServer<>(backupPorts[me],primaryHosts.length,me);
     }
 }

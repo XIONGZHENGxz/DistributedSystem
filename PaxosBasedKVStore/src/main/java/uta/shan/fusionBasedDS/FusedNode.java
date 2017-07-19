@@ -32,7 +32,7 @@ public class FusedNode<E> extends Node implements Serializable {
         return this.refCount == 0;
     }
 
-    public void updateCode(int oldVal, int newVal, int pid, int bid) {
+    public void updateCode(E oldVal, E newVal, int pid, int bid) {
         value = Fusion.updateCode(value,oldVal,newVal,pid,bid);
     }
 

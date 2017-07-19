@@ -24,8 +24,8 @@ public class TestServer{
 
 	private static String inputFile = "input.json";
 	private static final String LOCALHOST="localhost";
-	private static final int NUM_GROUPS = 1;
-	private static final int NUM_SERVERS_PER_GROUP = 2;
+	private static final int NUM_GROUPS = 2;
+	private static final int NUM_SERVERS_PER_GROUP = 3;
 
 	@BeforeClass
 	public static void init(){

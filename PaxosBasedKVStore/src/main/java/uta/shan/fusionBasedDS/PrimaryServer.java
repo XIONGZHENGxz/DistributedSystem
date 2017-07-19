@@ -1,31 +1,29 @@
 package uta.shan.fusionBasedDS;
 
 import uta.shan.communication.Messager;
-import uta.shan.communication.Util;
 import uta.shan.config.ConfigReader;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.StringTokenizer;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by xz on 6/7/17.
  */
 
-public class PrimaryServer extends Server {
+public class PrimaryServer<K,V> extends Server<K,V> {
     private Listener listener;
     private ReentrantLock lock;
     private String[] fusedBackupHosts;
     private int[] fusedBackPorts;
-    private FusionHashMap fusionHashMap;
+    private FusionHashMap<K,V> fusionHashMap;
 
     public PrimaryServer(String[] hosts, int[] ports, int id, int port) {
         lock = new ReentrantLock();
         this.id = id;
         fusedBackPorts = ports;
         fusedBackupHosts = hosts;
-        fusionHashMap = new FusionHashMap();
+        fusionHashMap = new FusionHashMap<>();
         listener = new Listener(port,this);
         listener.start();
     }
@@ -39,55 +37,54 @@ public class PrimaryServer extends Server {
     }
 
     public void shutDown() {
-
+        close();
     }
 
     @Override
-    public String handleRequest(String msg, Socket socket) {
+    public Reply<V> handleRequest(Request<K,V> request, Socket socket) {
         lock.lock();
-        StringTokenizer st = new StringTokenizer(msg);
-        String arg = st.nextToken();
-        String res = "";
-        if(arg.equals("get")) {
-            int key = Integer.parseInt(st.nextToken());
+        RequestType type = request.getType();
+        K key = request.getKey();
+        V val = request.getFirst();
+        Reply<V> reply = new Reply<V>();
+
+        if(type == RequestType.GET) {
             if(!fusionHashMap.containsKey(key)) {
-                res = "-1";
+                reply.setStatus(Status.NE);
             } else {
-                res = String.valueOf(fusionHashMap.get(key));
+                reply.setStatus(Status.OK);
+                reply.setVal(fusionHashMap.get(key));
             }
-        } else if(arg.equals("put")){
-            int key = Integer.parseInt(st.nextToken());
-            int val = Integer.parseInt(st.nextToken());
-            int oldVal = fusionHashMap.get(key);
+        } else if(type == RequestType.PUT){
+            V oldVal = fusionHashMap.get(key);
             fusionHashMap.put(key,val);
-            sendMsgToBackup("put "+key+" "+val+" "+oldVal+" "+id);
-            res = "put success";
-        } else if(arg.equals("remove")) {
-            int key = Integer.parseInt(st.nextToken());
-            if(!fusionHashMap.containsKey(key)) res = "key not exists!";
+            sendMsgToBackup(new Request<K, V>(RequestType.PUT, key, oldVal, val, id));
+            reply.setStatus(Status.OK);
+        } else if(type == RequestType.REMOVE) {
+            if(!fusionHashMap.containsKey(key)) reply.setStatus(Status.NE);
             else {
-                int valToRemove = fusionHashMap.get(key);
-                int valOfLast = fusionHashMap.getLast();
-                sendMsgToBackup("remove "+key + " " + valToRemove + " " + valOfLast + " " + id);
+                V valToRemove = fusionHashMap.get(key);
+                V valOfLast = fusionHashMap.getLast();
+                sendMsgToBackup(new Request<K, V>(RequestType.REMOVE, key, valToRemove, valOfLast, id));
                 boolean ok = fusionHashMap.remove(key);
-                res = "remove " + (ok ? "success" : "failure");
+                reply.setStatus(ok ? Status.OK : Status.ERR);
             }
-        } else if(arg.equals("recover")) {
+        } else if(type == RequestType.RECOVER) {
             Messager.sendMsg(fusionHashMap,socket);
-            res = null;
-        } else if(arg.equals("shutDown")) {
+            reply.setStatus(Status.OK);
+        } else if(type == RequestType.DOWN) {
             shutDown();
-            res = "ok";
+            reply = null;
         } else {
-            res = "invalid operation!";
+            reply.setStatus(Status.ERR);
         }
         lock.unlock();
-        return res;
+        return reply;
     }
 
-    public void sendMsgToBackup(String msg) {
+    public void sendMsgToBackup(Request<K,V> update) {
         for(int i=0;i<fusedBackupHosts.length;i++) {
-            Messager.sendMsg(msg,fusedBackupHosts[i],fusedBackPorts[i]);
+            Messager.sendMsg(update,fusedBackupHosts[i],fusedBackPorts[i]);
         }
     }
 
@@ -102,6 +99,6 @@ public class PrimaryServer extends Server {
         String[] primaryHosts = new String[nums[0]];
 
         ConfigReader.readJson(args[0],primaryHosts,backupHosts,primaryPorts,backupPorts);
-        PrimaryServer primaryServer = new PrimaryServer(backupHosts,backupPorts,me,primaryPorts[me]);
+        PrimaryServer<Integer, Integer> primaryServer = new PrimaryServer<>(backupHosts,backupPorts,me,primaryPorts[me]);
     }
 }

@@ -12,10 +12,10 @@ import uta.shan.communication.Util;
 import uta.shan.fusionBasedDS.*;
 
 public class LRCTester {
-    private static String LOCALHOST = "kamek.ece.utexas.edu";
-    private static Client client;
-    private static PrimaryServer[] primaryServers;
-    private static FusedServer[] fusedServers;
+    private static String LOCALHOST = "localhost";
+    private static Client<Integer, Integer> client;
+    private static PrimaryServer<Integer, Integer>[] primaryServers;
+    private static FusedServer<Integer, Integer>[] fusedServers;
 
     private static String[] fusedHosts;
     private static int[] fusedPorts;
@@ -51,12 +51,12 @@ public class LRCTester {
 
     @Test
     public void test1() {
-        assertTrue(client.get(0) == -1);
-        assertTrue(client.put(2,1).equals("put success"));
+        assertTrue(client.get(0) == null);
+        assertTrue(client.put(2,1) == Status.OK);
         assertTrue(client.get(2) == 1);
-        assertTrue(client.put(2,2).equals("put success"));
+        assertTrue(client.put(2,2) == Status.OK);
         assertTrue(client.get(2) == 2);
-        assertTrue(client.remove(2).equals("remove success"));
+        assertTrue(client.remove(2) == Status.OK);
         assertTrue(fusedServers[0].getMap().getDataStack().isEmpty());
     }
 
@@ -145,7 +145,7 @@ public class LRCTester {
         FusedMap[] fusedMaps = Fusion.getFused(fusedHosts,fusedPorts,fusedFlags,numPrimaries);
         assertTrue(fusedFlags[0]==true);
         assertTrue(fusedFlags[1]==true);
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -160,7 +160,7 @@ public class LRCTester {
         client.put(3,1500);
         primaryServers[0].shutDown();
         primaryServers[1].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -175,7 +175,7 @@ public class LRCTester {
         client.put(3,1500);
         primaryServers[0].shutDown();
         fusedServers[0].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -190,7 +190,7 @@ public class LRCTester {
         client.put(3,1500);
         primaryServers[1].shutDown();
         fusedServers[0].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
@@ -205,7 +205,7 @@ public class LRCTester {
         client.put(3,1500);
         primaryServers[1].shutDown();
         fusedServers[1].shutDown();
-        FusionHashMap[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        FusionHashMap<Integer, Integer>[] data = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         assertTrue(data[0].get(0) == 1000);
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);

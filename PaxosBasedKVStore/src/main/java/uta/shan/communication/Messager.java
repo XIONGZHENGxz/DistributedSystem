@@ -113,7 +113,7 @@ public class Messager {
 			out.writeObject(msg);
 			out.flush();
 		} catch(Exception e){
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 

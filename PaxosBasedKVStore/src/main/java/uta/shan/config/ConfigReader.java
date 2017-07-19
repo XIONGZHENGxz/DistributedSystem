@@ -41,6 +41,16 @@ public class ConfigReader {
 
     }
 
+    public static void readNumHosts(String filePath, int[] nums) {
+        JSONParser parser = new JSONParser();
+        try {
+            JSONObject jsonObject = (JSONObject) parser.parse(new FileReader(filePath));
+            nums[0] = Integer.parseInt((String) jsonObject.get("number of hosts"));
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void readNumGroups(String filePath, int[] nums) {
         JSONParser parser = new JSONParser();
         try {
@@ -94,6 +104,17 @@ public class ConfigReader {
         } catch (IOException | ParseException e) {
                 e.printStackTrace();
             }
+    }
+
+    public static void readServers(String filePath, String[] servers) {
+        JSONParser parser = new JSONParser();
+        try {
+            JSONObject jsonObject = (JSONObject) parser.parse(new FileReader(filePath));
+            JSONArray primaryServers = (JSONArray) jsonObject.get("hosts");
+            copyTo(primaryServers, servers);
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void replicate(int port, int[] ports) {
