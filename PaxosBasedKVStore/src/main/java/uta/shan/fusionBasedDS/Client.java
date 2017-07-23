@@ -42,7 +42,6 @@ public class Client<K,V> {
 
     public Status put(K key, V value) {
         int ind = decideServer(key);
-        System.out.println("which server: "+ind);
         Request<K,V> request = new Request<>(RequestType.PUT, key, value);
         Reply<V> reply = (Reply<V>) Messager.sendAndWaitReply(request,servers[ind],ports[ind]);
         if(reply == null) return Status.ERR;
@@ -66,19 +65,24 @@ public class Client<K,V> {
         Messager.sendMsg("resume",servers[id],ports[id]);
     }
 
-    public void doOperation(String arg, K key, V value, Map<K,V> store) {
+    public Status doOperation(String arg, K key, V value, Map<K,V> store) {
         if(arg.equals("put")) {
-            put(key,value);
+            Status stats = put(key,value);
             store.put(key,value);
+            return stats;
         } else if(arg.equals("get")) {
+            return Status.OK;
         } else if(arg.equals("remove")) {
             Status ok = remove(key);
             if(Util.DEBUG) System.out.println("remove "+key.toString()+ " "+ok.toString());
             store.remove(key);
+            return ok;
         } else if(arg.equals("down")) {
             int id = (Integer) value;
             shutDown(id);
+            return Status.OK;
         }
+        return Status.OK;
     }
 
     public int decideServer(K key) {
@@ -103,7 +107,9 @@ public class Client<K,V> {
     public boolean checkRecover(FusionHashMap[] primaries, Map<K, V> store) {
         for(K key: store.keySet()) {
             int ind = decideServer(key);
-            if (primaries[ind].get(key) != store.get(key)) return false;
+            V val = (V)primaries[ind].get(key);
+            if(Util.DEBUG) System.out.println(val+ " "+store.get(key));
+            if (!val.equals(store.get(key))) return false;
         }
         return true;
     }
@@ -130,7 +136,7 @@ public class Client<K,V> {
         List<String> ops = new ArrayList<>();
         ConfigReader.readOperations(args[1],ops);
         long start = Util.getCurrTime();
-        for(int i=0;i<ops.size();i++) {
+        for(int i = 0;i < ops.size(); i++) {
             StringTokenizer st = new StringTokenizer(ops.get(i));
             String arg = st.nextToken();
             int key = Integer.parseInt(st.nextToken());
@@ -140,7 +146,7 @@ public class Client<K,V> {
         long end = Util.getCurrTime();
         System.out.println("Update time: "+(end-start));
         Random rand = new Random();
-//        client.doOperation("down",null, rand.nextInt(nums[0]), store);
+        client.doOperation("down",null, rand.nextInt(nums[0]), store);
         FusionHashMap[] primaries = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
         boolean ok = client.checkRecover(primaries,store);
         System.out.println("recover result: "+ok);

@@ -18,6 +18,12 @@ public class Fusion {
         Object newCode;
         if(oldCode instanceof Integer) {
             if(oldVal == null) oldVal = 0;
+            if(newVal == null) newVal = 0;
+            if(Util.DEBUG) {
+                System.out.println("oldCode: "+oldCode);
+                System.out.println("oldVal: "+oldVal);
+                System.out.println("newVal: "+newVal);
+            }
             newCode = (int)oldCode + (int) Math.pow(pid + 1, bid) * ((int)newVal - (int)oldVal);
             if (Util.DEBUG) {
                 System.out.println("update code...oldVal: " + oldVal + " newVal: " + newVal + " pid: " + pid + " bid: " + bid);
@@ -58,18 +64,19 @@ public class Fusion {
         while(true) {
             int row = 0;
             List<Integer> keysOfPrimaries = new ArrayList<>();//the keys of primaries contained in this fusednode
-            int firstInd = -1;//first index of primary that is good
+            int firstInd = -1;//first index of primary that is good and stored val in this node.
             for(int i=0;i<n;i++) {
                 FusedAuxNode<Integer> auxNode = (FusedAuxNode<Integer>) node.getAuxNode(i);
                 int key = -1;
                 if(auxNode !=null) {
                     key = getKey(indList.get(i),auxNode);
-                    System.out.println("k: "+key);
-                    if(firstInd == -1) firstInd = i;
+                    if(firstInd == -1 && key != -1) firstInd = i;
                 }
                 keysOfPrimaries.add(key);
-                if(flags[i] && row<n) {
-                    matrix[row++][n] = primaryMaps[i].get(key);
+                if(Util.DEBUG) System.out.println(key +" "+i +" "+flags[i]);
+                if(flags[i] && row < n) {
+                    if(key == -1) matrix[row ++][n] = 0;
+                    else matrix[row++][n] = primaryMaps[i].get(key);
                 }
             }
 
@@ -77,8 +84,6 @@ public class Fusion {
                 if(fusedFlags[j] && row<n) {
                     Map<Integer,FusedAuxNode> tmp =
                             (Map<Integer,FusedAuxNode>) fusedMaps[j].getIndexList().get(firstInd);
-                    System.out.println("key: "+keysOfPrimaries.get(firstInd));
-                    System.out.println(tmp.containsKey(keysOfPrimaries));
                     FusedNode fusedNode = tmp.get(keysOfPrimaries.get(firstInd)).getFusedNode();
                     Integer val = (Integer) fusedNode.getValue();
                     matrix[row++][n] = val.doubleValue();
@@ -89,9 +94,10 @@ public class Fusion {
             double[] res = EquationSolver.solve(matrix);
             int j = 0;
 
-            for(int i=0;i<n;i++) {
-                if(!flags[i]) {
-                    primaryMaps[i].put(keysOfPrimaries.get(i),(int)res[j]);
+            for(int i = 0;i < n; i++) {
+                int key = keysOfPrimaries.get(i);
+                if(!flags[i] && key != -1) {
+                    primaryMaps[i].put(key,(int)res[j]);
                 }
                 j++;
             }
@@ -136,20 +142,20 @@ public class Fusion {
                     matrix[row][i] = Math.pow(i+1,j);
                 }
                 row++;
-                if(row==n) return matrix;
+                if(row == n) return matrix;
             }
         }
         return matrix;
     }
 
-    public static FusionHashMap[] getPrimaries(String[] primaryHosts, int[] primaryPorts, boolean[] flags) {
+    public static FusionHashMap<Integer, Integer>[] getPrimaries(String[] primaryHosts, int[] primaryPorts, boolean[] flags) {
         int numPrimaries = primaryHosts.length;
-        FusionHashMap[] fusionHashMaps= new FusionHashMap[numPrimaries];
+        FusionHashMap<Integer,Integer>[] fusionHashMaps= new FusionHashMap[numPrimaries];
         for(int i=0;i<numPrimaries;i++) {
-            fusionHashMaps[i] = (FusionHashMap) getData(primaryHosts[i], primaryPorts[i]);
+            fusionHashMaps[i] = (FusionHashMap<Integer, Integer>) getData(primaryHosts[i], primaryPorts[i]);
             if(fusionHashMaps[i] != null) flags[i] = true;
             else{
-                fusionHashMaps[i] = new FusionHashMap();
+                fusionHashMaps[i] = new FusionHashMap<>();
             }
         }
         return fusionHashMaps;

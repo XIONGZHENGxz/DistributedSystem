@@ -6,10 +6,16 @@ package uta.shan.fusionBasedDSTest;
 
 import static org.junit.Assert.*;
 
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import uta.shan.common.InputGenerator;
 import uta.shan.communication.Util;
+import uta.shan.config.ConfigReader;
 import uta.shan.fusionBasedDS.*;
+
+import java.io.IOException;
+import java.util.*;
 
 public class SystemTester {
     private static String LOCALHOST = "localhost";
@@ -25,7 +31,6 @@ public class SystemTester {
     private static int numPrimaries = 2;
     private static int numFusedBackups = 2;
 
-    @BeforeClass
     public static void init() {
         fusedHosts = new String[numFusedBackups];
         fusedPorts = new int[numFusedBackups];
@@ -39,16 +44,36 @@ public class SystemTester {
             fusedHosts[i] = LOCALHOST;
             fusedPorts[i] = Util.clientPort+i+1;
             fusedServers[i] = new FusedServer(fusedPorts[i],numPrimaries,i);
+            while(!fusedServers[i].isBound()) {
+                Thread.yield();
+            }
         }
 
         for(int i=0;i<numPrimaries;i++) {
             primaryHosts[i] = LOCALHOST;
             primaryPorts[i] = Util.clientPort+i+numFusedBackups+1;
             primaryServers[i] = new PrimaryServer(fusedHosts,fusedPorts,i,primaryPorts[i]);
+            while(!primaryServers[i].isBound()) {
+                Thread.yield();
+            }
+        }
+        try {
+            Thread.sleep(30);
+        }catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         client = new Client(LOCALHOST,primaryHosts,primaryPorts,fusedHosts,fusedPorts);
 
+    }
+
+    public static void end() {
+        for(PrimaryServer ps : primaryServers) {
+            ps.shutDown();
+        }
+        for(FusedServer fs : fusedServers) {
+            fs.shutDown();
+        }
     }
 
     @Test
@@ -229,5 +254,64 @@ public class SystemTester {
         assertTrue(data[0].get(2) == 2000);
         assertTrue(data[1].get(1) == 500);
         assertTrue(data[1].get(3) == 1500);
+    }
+
+    public static boolean execute(String input, Map<Integer, Integer> store) {
+        List<String> ops = new ArrayList<>();
+        ConfigReader.readOperations(input,ops);
+        long start = Util.getCurrTime();
+        for(int i = 0;i < ops.size(); i++) {
+            StringTokenizer st = new StringTokenizer(ops.get(i));
+            String arg = st.nextToken();
+            int key = Integer.parseInt(st.nextToken());
+            int val = st.hasMoreTokens() ? Integer.parseInt(st.nextToken()) : -1;
+            Status s = client.doOperation(arg, key, val,store);
+            assertTrue(s == Status.OK);
+        }
+        Random rand = new Random();
+        client.doOperation("down",null, rand.nextInt(numPrimaries), store);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        FusionHashMap[] primaries = Fusion.recover(primaryHosts,fusedHosts,primaryPorts,fusedPorts);
+        boolean ok = client.checkRecover(primaries,store);
+        return ok;
+    }
+    @Test
+    public void test13() {
+        int i = 0;
+        while(i < 20) {
+            init();
+            InputGenerator.generateInput(5, "input.json", 100);
+            assertTrue(execute("input.json", new HashMap<Integer, Integer>()));
+            end();
+            i++;
+        }
+    }
+
+    @Test
+    public void test14() {
+        int i = 0;
+        while(i < 20) {
+            init();
+            InputGenerator.generateInput(10, "input.json", 100);
+            assertTrue(execute("input.json", new HashMap<Integer, Integer>()));
+            end();
+            i++;
+        }
+    }
+
+    @Test
+    public void test15() {
+        int i = 0;
+        while(i < 20) {
+            init();
+            InputGenerator.generateInput(100, "input.json", 1000);
+            assertTrue(execute("input.json", new HashMap<Integer, Integer>()));
+            end();
+            i++;
+        }
     }
 }

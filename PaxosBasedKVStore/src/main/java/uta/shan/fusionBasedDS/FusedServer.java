@@ -25,6 +25,10 @@ public class FusedServer<K,V> extends Server<K,V>{
         lock = new ReentrantLock();
     }
 
+    public boolean isBound() {
+        return listener.getServerSocket()!= null && listener.getServerSocket().isBound();
+    }
+
     @Override
     public void shutDown() {
         try {
@@ -32,6 +36,7 @@ public class FusedServer<K,V> extends Server<K,V>{
         } catch (IOException e) {
             e.printStackTrace();
         }
+        listener.setAlive(true);
     }
 
     public Reply<V> handleRequest(Request<K,V> request, Socket socket) {

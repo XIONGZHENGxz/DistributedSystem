@@ -28,16 +28,17 @@ public class PrimaryServer<K,V> extends Server<K,V> {
         listener.start();
     }
 
-    public void close() {
+    public void shutDown() {
         try {
             listener.getServerSocket().close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        listener.setAlive(true);
     }
 
-    public void shutDown() {
-        close();
+    public boolean isBound() {
+        return listener.getServerSocket() != null && listener.getServerSocket().isBound();
     }
 
     @Override

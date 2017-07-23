@@ -66,9 +66,6 @@ public class Messager {
 			while(resp == null && currTime-startTime < Util.TIMEOUT) {
 				resp = in.readObject();
 				currTime = Util.getCurrTime();
-				if(Util.DEBUG) {
-					System.out.println("Debug: waiting for reply from "+host+" "+port);
-				}
 			}
 			return resp;
 		} catch (IOException e) {
@@ -93,9 +90,6 @@ public class Messager {
 			while(resp == null && currTime-startTime < Util.TIMEOUT) {
 				resp = in.readObject();
 				currTime = Util.getCurrTime();
-				if(Util.DEBUG) {
-					System.out.println("Debug: waiting for reply from "+host+" "+port);
-				}
 			}
 			return resp;
 		} catch (IOException e) {
@@ -157,9 +151,6 @@ public class Messager {
 		try {
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			resp = reader.readLine();
-			if(Util.DEBUG) {
-				System.out.println("received request: " + resp);
-			}
 		} catch(Exception e){
 			e.printStackTrace();
 		}

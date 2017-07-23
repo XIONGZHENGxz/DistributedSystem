@@ -3,6 +3,7 @@ package uta.shan.fusionBasedDS;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+
 import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
 
@@ -19,6 +20,10 @@ public class Listener<K,V> extends Thread{
         this.port = port;
         this.server = server;
         isAlive = true;
+    }
+
+    public void setAlive (boolean b) {
+        isAlive = b;
     }
 
     public int getPort() {
@@ -56,6 +61,7 @@ public class Listener<K,V> extends Thread{
                     }
                 }
             } catch (IOException e) {
+                if(Util.DEBUG)
                 System.out.println("server: "+server.getId()+" down!");
                 break;
             }

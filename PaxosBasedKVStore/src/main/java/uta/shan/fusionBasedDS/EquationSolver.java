@@ -19,7 +19,6 @@ public class EquationSolver {
     }
 
     public static double[] solve(double[][] a) {
-        if(Util.DEBUG) printMat(a);
         int n = a.length;
         double[][] A = new double[n][n+1];
 

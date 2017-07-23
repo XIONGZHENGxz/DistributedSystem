@@ -207,6 +207,7 @@ public class Client<K,V> {
     public boolean checkConsistency(Map<K, V> store) {
         for(K key : store.keySet()) {
             V val = get(key);
+            if(Util.DEBUG)
             System.out.println("key : "+key.toString() + " storeval: "+store.get(key) + "keeperval: "+val);
             if(!store.get(key).equals(val)) return false;
         }

@@ -15,14 +15,18 @@ import java.util.Random;
 public class InputGenerator {
     private static final Random rand = new Random();
     private static final String[] cmds = {"get", "put", "remove"};
-    private static final List<Integer> list = new ArrayList<>();
     private static final List<String> strings = new ArrayList<>();
 
     public static void generateInput(int size, String outputFile,int max) {
+        List<Integer> list = new ArrayList<>();
         JSONArray ops = new JSONArray();
         int i = 0;
         while(i < size) {
-            String cmd = cmds[rand.nextInt(3)];
+            String cmd = "";
+            if(i % 10 == 9) cmd = "remove";
+            else if(i % 10 == 8) cmd = "get";
+            else cmd = "put";
+
             if(cmd.equals("put")) {
                 int key = rand.nextInt(max);
                 int val = rand.nextInt(max);
@@ -37,6 +41,7 @@ public class InputGenerator {
                 if(cmd.equals("remove")) list.remove(ind);
                 i++;
             }
+//            System.out.println("cmd:: "+cmd);
         }
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("Operations", ops);
