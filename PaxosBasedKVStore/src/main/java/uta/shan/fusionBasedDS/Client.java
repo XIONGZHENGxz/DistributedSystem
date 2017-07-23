@@ -3,6 +3,7 @@ package uta.shan.fusionBasedDS;
 /**
  * Created by xz on 6/7/17.
  */
+import org.omg.CORBA.INTERNAL;
 import uta.shan.common.InputGenerator;
 import uta.shan.communication.Messager;
 import uta.shan.communication.Util;
@@ -88,6 +89,7 @@ public class Client<K,V> {
     public int decideServer(K key) {
         if(key instanceof Integer) {
             int k = (Integer) key;
+            if(k < 0) k = -k;
             return k % servers.length;
         }
         else return 0;

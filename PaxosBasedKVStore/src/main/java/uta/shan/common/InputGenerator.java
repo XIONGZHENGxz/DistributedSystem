@@ -55,6 +55,43 @@ public class InputGenerator {
     }
 
 
+    public static void generateInput(int size, String outputFile,int min, int max) {
+        List<Integer> list = new ArrayList<>();
+        JSONArray ops = new JSONArray();
+        int i = 0;
+        while(i < size) {
+            String cmd = "";
+            if(i % 10 == 9) cmd = "remove";
+            else if(i % 10 == 8) cmd = "get";
+            else cmd = "put";
+
+            if(cmd.equals("put")) {
+                int key = min + rand.nextInt(max - min + 1);
+                int val = min + rand.nextInt(max - min + 1);
+                list.add(key);
+                ops.add(cmd+" "+key+" "+val);
+                i++;
+            } else {
+                if(list.size() == 0) continue;
+                int ind = rand.nextInt(list.size());
+                int key = list.get(ind);
+                ops.add(cmd+" "+key);
+                if(cmd.equals("remove")) list.remove(ind);
+                i++;
+            }
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("Operations", ops);
+        try {
+            FileWriter fw = new FileWriter(outputFile);
+            fw.write(jsonObject.toJSONString());
+            fw.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void generateInput(int keyLen, int valLen, int size, String outputFile) {
         JSONArray ops = new JSONArray();
         int i = 0;
@@ -100,7 +137,8 @@ public class InputGenerator {
     public static void main(String...args) {
         int size = Integer.parseInt(args[0]);
         String file = args[1];
-        int max = Integer.parseInt(args[2]);
-        generateInput(size, file, max);
+        int min = Integer.parseInt(args[2]);
+        int max = Integer.parseInt(args[3]);
+        generateInput(size, file, min, max);
     }
 }

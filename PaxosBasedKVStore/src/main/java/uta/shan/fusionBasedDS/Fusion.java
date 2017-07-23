@@ -36,6 +36,41 @@ public class Fusion {
         return newCode;
     }
 
+    public static int updateCode(int oldCode, int oldVal, int newVal, int pid, int bid) {
+        if(Util.DEBUG) {
+            System.out.println("oldCode: "+oldCode);
+            System.out.println("oldVal: "+oldVal);
+            System.out.println("newVal: "+newVal);
+        }
+        int newCode = oldCode + (int) Math.pow(pid + 1, bid) * (newVal - oldVal);
+        if (Util.DEBUG) {
+            System.out.println("update code...oldVal: " + oldVal + " newVal: " + newVal + " pid: " + pid + " bid: " + bid);
+            System.out.println("update code...oldCode: " + oldCode + " newCode: " + newCode);
+        }
+        return newCode;
+    }
+    /*
+        public static byte[] updateCode(byte[] oldCode, byte[] oldVal, byte[] newVal, int pid, int bid) {
+            Object newCode;
+                if(oldVal == null) oldVal = 0;
+                if(newVal == null) newVal = 0;
+                if(Util.DEBUG) {
+                    System.out.println("oldCode: "+oldCode);
+                    System.out.println("oldVal: "+oldVal);
+                    System.out.println("newVal: "+newVal);
+                }
+                newCode = (int)oldCode + (int) Math.pow(pid + 1, bid) * ((int)newVal - (int)oldVal);
+                if (Util.DEBUG) {
+                    System.out.println("update code...oldVal: " + oldVal + " newVal: " + newVal + " pid: " + pid + " bid: " + bid);
+                    System.out.println("update code...oldCode: " + oldCode + " newCode: " + newCode);
+                }
+                return newCode;
+            } else {
+                newCode = null;
+            }
+            return newCode;
+        }
+        */
     public static FusionHashMap[] recover(String[] primaryHosts, String[] fusedHosts, int[] primaryPorts, int[] fusedPorts) {
         long recoverStartTime = Util.getCurrTime();
         int n = primaryHosts.length;
@@ -67,15 +102,16 @@ public class Fusion {
             int firstInd = -1;//first index of primary that is good and stored val in this node.
             for(int i=0;i<n;i++) {
                 FusedAuxNode<Integer> auxNode = (FusedAuxNode<Integer>) node.getAuxNode(i);
-                int key = -1;
-                if(auxNode !=null) {
+                Integer key = null;
+                if(auxNode != null) {
                     key = getKey(indList.get(i),auxNode);
-                    if(firstInd == -1 && key != -1) firstInd = i;
+                    if(firstInd == -1 && key != null) firstInd = i;
                 }
                 keysOfPrimaries.add(key);
                 if(Util.DEBUG) System.out.println(key +" "+i +" "+flags[i]);
                 if(flags[i] && row < n) {
-                    if(key == -1) matrix[row ++][n] = 0;
+
+                    if(key == null) matrix[row ++][n] = 0;
                     else matrix[row++][n] = primaryMaps[i].get(key);
                 }
             }
@@ -95,8 +131,8 @@ public class Fusion {
             int j = 0;
 
             for(int i = 0;i < n; i++) {
-                int key = keysOfPrimaries.get(i);
-                if(!flags[i] && key != -1) {
+                Integer key = keysOfPrimaries.get(i);
+                if(!flags[i] && key != null) {
                     primaryMaps[i].put(key,(int)res[j]);
                 }
                 j++;
@@ -111,11 +147,11 @@ public class Fusion {
     }
 
     //given FusedAuxNode, get its key
-    public static int getKey(Map<Integer,FusedAuxNode> map, FusedAuxNode val) {
-        for(int key: map.keySet()) {
+    public static Integer getKey(Map<Integer,FusedAuxNode> map, FusedAuxNode val) {
+        for(Integer key: map.keySet()) {
             if(map.get(key) == val) return key;
         }
-        return -1;
+        return null;
     }
 
     //get maxtrix

@@ -294,9 +294,9 @@ public class SystemTester {
     @Test
     public void test14() {
         int i = 0;
-        while(i < 20) {
+        while(i < 50) {
             init();
-            InputGenerator.generateInput(10, "input.json", 100);
+            InputGenerator.generateInput(20, "input.json", 100);
             assertTrue(execute("input.json", new HashMap<Integer, Integer>()));
             end();
             i++;
@@ -306,9 +306,9 @@ public class SystemTester {
     @Test
     public void test15() {
         int i = 0;
-        while(i < 20) {
+        while (i < 50) {
             init();
-            InputGenerator.generateInput(100, "input.json", 1000);
+            InputGenerator.generateInput(20, "input.json", -1000, 1000);
             assertTrue(execute("input.json", new HashMap<Integer, Integer>()));
             end();
             i++;
