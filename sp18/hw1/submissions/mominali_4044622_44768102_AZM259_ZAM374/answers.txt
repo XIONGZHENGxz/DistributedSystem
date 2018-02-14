@@ -1,0 +1,96 @@
+/*
+ *  answers.txt
+ *  EE 360P Homework 1
+ *
+ *  Created by Ali Ziyaan Momin and Zain Modi on 01/30/2018.
+ *  EIDs: AZM259 and ZAM374
+ *
+ */
+
+3. (5 points) Create a TACC UserID and submit it along with Homework questions.
+    alimomin - Ali Ziyaan Momin
+    zam374 - Zain Modi
+
+4. (15 points) Show that any of the following modifications to Peterson’s algorithm makes it incorrect:
+
+    Peterson's Algorithm:
+
+    bool flag[0] = {false};
+    bool flag[1] = {false};
+    int turn;
+
+    P0:      flag[0] = true;                                    P0:      flag[1] = true;
+    P0_gate: turn = 1;                                          P0_gate: turn = 0;
+             while (flag[1] == true && turn == 1)                        while (flag[0] == true && turn == 0)
+             {                                                           {
+                 // busy wait                                                // busy wait
+             }                                                           }
+             // critical section                                         // critical section
+             ...                                                         ...
+             // end of critical section                                  // end of critical section
+             flag[0] = false;                                            flag[1] = false;
+
+
+    a) A process in Peterson’s algorithm sets the turn variable to itself instead of setting it to the other process.
+
+    Suppose, P0 sets turn = 0 on line 23. It then enters the while loop which it exits immediately because the
+    invariant (flag[1] == true && turn == 1) fails because turn != 1 and enters the Critical Section. Lets assume at
+    this point a context switch occurs and P1 starts up. P1 sets turn = 1 and then immediately exits the while loop
+    because the invariant (flag[0] == true && turn == 0) fails because turn != 0. It then enters the Critical Section.
+    Both P0 and P1 are in the Critical Section which makes the modifications to the algorithm incorrect because it
+    violates the rule of mutual exclusion.
+
+
+    b) A process sets the turn variable before setting the wantCS variable.
+
+    In this scenario, we will perform line 23 before line 22. Suppose, P0 sets turn = 1 and then a context switch
+    occurs. P1 starts up and sets turn = 0, and flag[1] = true. It then enters the while loop which is exits immediately
+    because the invariant (flag[0] == true && turn == 0) because flag[0] != true and enters the Critical Section. At
+    this point, another context switch occurs and P0 starts up again. It continues from where it left off so it sets
+    flag[0] == true and enters the while loop. It then immediately exits the while loop because the invariant
+    (flag[1] == true && turn == 1) fails because turn != 1 and enters the Critical Section.
+    Both P0 and P1 are in the Critical Section which makes the modifications to the algorithm incorrect because it
+    violates the rule of mutual exclusion.
+
+
+5. (15 points) Peterson’s algorithm uses a multi-write variable turn. Modify the algorithm to use two variables turn0
+    and turn1 instead of turn such that P0 does not write to turn1 and P1 does not write to turn0.
+
+    //Let turn0 = turn[0] and turn1 = turn[1]
+
+    bool flag[0] = {false};
+    bool flag[1] = {false};
+    int turn[0] = {0};
+    int turn[1] = {0};
+
+    P0:      flag[0] = true;                                    P0:      flag[1] = true;
+    P0_gate: turn[0] = turn[1] + 1;                             P0_gate: turn[1] = turn[0] + 1;
+             while (flag[1] == true && turn[1] < turn[0])                while (flag[0] == true && turn[0] <= turn[1])
+             {                                                           {
+                 // busy wait                                                // busy wait
+             }                                                           }
+             // critical section                                         // critical section
+             ...                                                         ...
+             // end of critical section                                  // end of critical section
+             flag[0] = false;                                            flag[1] = false;
+             turn[0] = 0;                                                turn[1] = 0;
+
+
+6. (15 points) Show that the bakery algorithm does not work in the absence of choosing variables.
+
+    Not having choosing variables allows threads to enter the critical section at the same time. Take the following
+    case where there is no choosing variable and both P0 and P1 manage to enter the critical section!....
+
+    P0 is running an completes step 1 of requesting a critical section, but before number[0] is assigned P1 interrupts
+
+    P1 is running now and number[1] is assigned 1. Since the array reads all 0 aside from its own
+    number (number[1] = 1), P1 enters the critical section.
+    
+    P0 is back to running and number[0] is assigned 1. Now, P0 can satisfy the condition for number[0] and move on
+    and then satisfies the condition for number[1] since number[1] = number[0]. However, since 1>0, P0 get priority
+    over P1 and is able to clear the number array due to other entries being 0, therefore P0 can now enter the critical
+    section as well.
+
+
+
+
