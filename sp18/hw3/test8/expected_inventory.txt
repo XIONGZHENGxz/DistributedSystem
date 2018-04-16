@@ -1,0 +1,4 @@
+"book1" 0
+"book2" 5
+"book3" 6
+"book4" 0

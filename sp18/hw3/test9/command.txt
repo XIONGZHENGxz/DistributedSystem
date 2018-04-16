@@ -1,0 +1,25 @@
+setmode T
+borrow a "book1"
+borrow a "book2"
+borrow a "book3"
+setmode U
+borrow b "book1"
+borrow b "book2"
+borrow b "book3"
+setmode T
+borrow c "book1"
+borrow c "book2"
+borrow c "book3"
+return 1
+borrow d "book1"
+borrow d "book2"
+borrow d "book3"
+return 2
+list a
+list k
+borrow e "book1"
+borrow f "book1"
+borrow g "book1"
+borrow h "book1"
+borrow i "book1"
+exit

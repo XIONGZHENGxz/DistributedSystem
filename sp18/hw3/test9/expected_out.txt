@@ -1,0 +1,22 @@
+Your request has been approved, 1 a "book1"
+Your request has been approved, 2 a "book2"
+Your request has been approved, 3 a "book3"
+Your request has been approved, 4 b "book1"
+Your request has been approved, 5 b "book2"
+Your request has been approved, 6 b "book3"
+Your request has been approved, 7 c "book1"
+Your request has been approved, 8 c "book2"
+Your request has been approved, 9 c "book3"
+1 is returned
+Your request has been approved, 10 d "book1"
+Your request has been approved, 11 d "book2"
+Your request has been approved, 12 d "book3"
+2 is returned
+3 "book3"
+No record found for k
+Your request has been approved, 13 e "book1"
+Your request has been approved, 14 f "book1"
+Your request has been approved, 15 g "book1"
+Your request has been approved, 16 h "book1"
+Request Failed - Book not available
+

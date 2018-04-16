@@ -1,0 +1,15 @@
+Your request has been approved, 1 A “book1”
+Your request has been approved, 2 B "book2"
+Your request has been approved, 3 B “book1”
+Your request has been approved, 4 B “book4”
+Your request has been approved, 5 A “book3”
+Your request has been approved, 5 A “book3”
+Your request has been approved, 5 A “book3”
+Your request has been approved, 6 C "book4"
+Your request has been approved, 7 D "book4"
+Your request has been approved, 8 E "book4"
+Request Failed - Book not available
+Your request has been approved, 10 F "book3"
+4 is returned
+Your request has been approved, 11 F "book4"
+

@@ -98,8 +98,9 @@ public class TestMerge {
 				merge(A, B, C);
 
 				try{	
-				PMerge.parallelMerge(A, B, D, num);
+					PMerge.parallelMerge(A, B, D, num);
 				} catch (Exception e) {
+					e.printStackTrace();
 				}
 
 				for (int i = 0; i < C.length; i++) {

@@ -1,0 +1,12 @@
+.*1.*A.*book1.*
+.*2.*B.*book2.*
+.*3.*B.*book1.*
+.*4.*B.*book4.*
+.*5.*A.*book3.*
+.*6.*C.*book4.*
+.*7.*D.*book4.*
+.*8.*E.*book4.*
+.*Failed.*
+.*9.*F.*book3.*
+.*4.*returned.*
+.*10.*F.*book4.*

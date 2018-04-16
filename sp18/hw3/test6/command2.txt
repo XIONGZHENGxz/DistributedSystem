@@ -1,0 +1,4 @@
+borrow aaa "Letter"
+borrow bbb "Divergent"
+borrow ccc "Divergent"
+exit

@@ -1,0 +1,13 @@
+borrow A book1 
+borrow B book2
+borrow B book1
+borrow B book4 
+borrow A book3 
+borrow C book4 
+borrow D book4 
+borrow E book4 
+borrow F book4 
+borrow F book3  
+borrow F book1 
+exit
+

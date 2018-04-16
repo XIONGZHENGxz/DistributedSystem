@@ -1,0 +1,8 @@
+setmode T
+borrow Mike "Letter"
+borrow Jack "Letter"
+borrow Lucy "Divergent"
+list Mike
+return 1
+inventory
+exit

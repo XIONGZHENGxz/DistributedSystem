@@ -17,13 +17,13 @@ class AMerge extends Thread {
 	public void run() {
 		// TODO Auto-generated method stub
 		int i, j, k;
-		for (i = 0; A[begin] >= B[i] && i < B.length - 1; i++)
+		for (i = 0; A[begin] > B[i] && i < B.length - 1; i++)
 			;
-		if (A[begin] >= B[i])
+		if (A[begin] > B[i])
 			i++;
 		for (j = B.length - 1; A[end] < B[j] && j > 0; j--)
 			;
-		if (A[end] > B[j])
+		if (A[end] > B[j] && j < B.length - 1)
 			j++;
 
 		for (k = begin + i; i <= j && begin <= end && i < B.length && begin < A.length; k++) {
@@ -41,7 +41,7 @@ class AMerge extends Thread {
 		}
 		for (; i <= j; i++, k++) {
 			if (begin < A.length) {
-				if (A[begin] > B[i]) {
+				if (A[begin] >= B[i]) {
 					System.out.println("more B");
 					C[k] = B[i];
 				}

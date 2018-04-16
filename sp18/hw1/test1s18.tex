@@ -1,0 +1,380 @@
+\documentclass[10pt]{article}
+\usepackage{graphicx}
+%\input{header}
+\topmargin -0.7in
+\textheight 9.0in
+\textwidth 7.0in
+\oddsidemargin -0.225in
+\begin{document}
+%\newcommand{\ra}{\rightarrow}
+
+\vspace{0.5in}
+\begin{center}
+{\large \bf EE 360P, TEST 1, Vijay K. Garg, Spring'18}
+\end{center}
+\vspace{0.5in}
+{\Large \bf
+NAME:\\
+\\
+UT EID:\\
+\\
+\\
+}
+{\em Honor Code: I have neither cheated nor helped anybody cheat in this test. \\
+Signature:}\\
+\\
+{\em
+Time Allowed: 75 minutes\\
+Maximum Score: 75 points\\
+Instructions: This is a CLOSED book exam.
+Attempt all questions.
+}
+
+
+\pagebreak
+
+\noindent
+Q.1 {\bf (10 points)}
+Please give concise answers to the following questions.\\
+\\
+
+(a, 2 pts) What is the difference between a process and a thread?
+
+
+\vspace{2.3in}
+
+(b, 2 pts) Suppose that we want that a thread executes {\tt bar()} inside a monitor
+method {\tt foo()} only if {\tt count} is greater than $0$.
+Will the following code snippet work in Java? 
+If not, show how you will fix it.
+\begin{verbatim}
+
+   public synchronized void foo() throws InterruptedException {
+     if (count <= 0)
+         wait();
+      // count must be greater than 0 before bar() is executed
+      bar();
+   }
+\end{verbatim}
+
+\vspace{2.2in}
+
+\noindent
+(c, 2 pts)
+Define deadlock-freedom and starvation-freedom for a program that has resources such as critical sections.
+Can a program be starvation-free but not be free from deadlocks? Justify your answer.
+
+\pagebreak
+
+(d, 2 pts) 
+A computer program has a method that takes 25\% of the time and cannot be parallelized.
+What is the maximum speedup possible with $4$ cores? 
+Your manager has asked you to buy a machine with enough cores to get a speedup of $8$.
+Specifically, he has asked you to calculate the number of cores that will enable the speedup of $8$.
+What will you tell him?
+ 
+\vspace{3.3in}
+
+\noindent
+(e, 2 pts) 
+What is advantage of using {\tt ThreadPool} instead of creating explicit {\tt Thread} for each 
+task?
+
+%\noindent
+%(e, 2 pts) 
+%Suppose that you have a synchronized method {\tt Integer compareAndSwap(Integer expected, Integer newVal)}
+
+\pagebreak
+
+\noindent
+Q.2 {\bf (10 points)}
+Assume that there is a monitor object {\tt queue} that implements a queue of Integers with 
+the following methods.
+\begin{verbatim}
+poll(): returns and deletes the first element in the queue. If the queue is empty it returns a null value
+isEmpty() returns true iff the queue is empty
+enq(Integer x): enqueues x and signals all the threads waiting on the queue
+\end{verbatim}.
+
+A programmer wants to block for an empty queue and return only a non-null value when 
+the queue becomes nonempty. Will the following code work? (i.e. is it possible for
+the program to reach line 15). Justify your answer.
+If the program is faulty, show how you will fix it.
+
+\begin{verbatim}
+01 public Integer deq() {
+02     Integer retVal = null;
+03     synchronized (queue) {
+04          try {
+05               while (queue.isEmpty()) {
+06                    queue.wait();
+07               }
+08           } catch (InterruptedException e) {
+09               e.printStackTrace();
+10           }
+11    }
+12    synchronized (queue) {
+13        retVal = queue.poll();// returns first item from the linked list unconditinally
+14        if (retVal == null) {
+15            System.err.println("retVal is null");
+16
+17        }
+18    }
+19    return retVal;
+20 }
+\end{verbatim}
+
+\pagebreak
+
+\noindent
+Q.3 {\bf (5 points)}
+
+Consider the following mutual exclusion protocol based on busy-waiting.
+Show that it does not satisfy mutual exclusion. The variables {\tt turn},
+{\tt wantCS1}, and {\tt wantCS} are shared variables.
+
+\begin{verbatim} 
+     shared int turn = 1;
+     shared boolean wantCS1 = false;
+     shared boolean wantCS2 = false;
+
+//      code for process 1                 //   code for process 2
+a1:     turn = 2;                          b1:  turn = 1;
+a2:     wantCS1 = true;                    b2:  wantCS2 = true;
+a3:     while(wantCS2 && (turn==2));       b3:  while(wantCS1 && (turn==1));
+a4:     criticalSection();                 b4:  criticalSection();
+a5:     wantCS1 = false;                   b5:  wantCS2 = false;
+\end{verbatim}
+
+Q.3 Answer:\\
+The following execution would cause two processes to be in critical section:
+a1, b1, b2, b3, critical section, a2, a3, critical section.
+
+
+\pagebreak
+
+\noindent
+Q.4 {\bf (5 points)}
+Suppose that your system provides a class {\tt Synch} with a single static method
+{\tt public void swap(AtomicInteger x, AtomicInteger y)}. This method atomically swaps the contents of Integer objects {\tt x} and {\tt y}.
+Use the swap method in the {\tt Synch} class to implement the SwapLock class.
+Your lock should ensure mutual exclusion and deadlock-freedom. You do not have to worry
+about starvation-freedom. Note that you cannot use any synchronization construct except
+{\tt Synch.swap}. Your implementation should be based on busy-waiting.
+\begin{verbatim}
+public class SwapLock {
+// declare your variables
+
+  AtomicInteger a = new AtomicInteger(0);
+
+  public void lock(){
+     AtomicInteger b = new AtomicInteger(1);
+     while(true) {
+       swap(a, b);
+       if(b.get() == 0) return;
+    }
+  }
+
+  public void unlock(){
+     a.set(0);
+  }
+}
+
+\end{verbatim}
+
+\pagebreak
+
+\noindent
+Q. 5 {\bf (20 points)}
+Suppose that the state regulation for any child care center is that there must be at least one employee in the
+center for every four children. So, if there are five children in the center, then there must be at least two employees.
+Write a monitor class {\tt
+ChildCare} that supports four methods. Parents call {\tt enterChild()} whenever they want to drop
+a child at the center. They call {\tt exitChild()} whenever they come to pick up the child.
+Parents can pick up their child whenever they want; however, they can drop the child only if
+the ratio of the children to the employees does not exceed four. If the ratio on dropping the child
+will exceed four, the method {\tt enterChild()} should block (wait).
+Employees call {\tt enterEmp()} whenever they enter the child care center.
+This method does not block. Employees call {\tt exitEmp()} whenever they want to leave the center.
+This method should block if the state regulation gets violated if the employee leaves the center.
+
+Do not worry about starvation but your program should be free from deadlocks.
+You can use built-in Java monitors or Reentrant locks and condition variables.
+
+
+{\small 
+\begin{verbatim}
+public class ChildCare {
+    // declare your variables
+
+
+
+
+
+
+
+    public void enterChild() {
+
+
+
+
+
+
+
+
+    }
+    
+    public void exitChild() {
+
+
+
+
+
+    }
+    
+    public void enterEmp() {
+
+
+
+
+
+    }
+    
+    public void exitEmp() {
+    
+
+
+
+
+
+    }
+}
+\end{verbatim}
+}
+\pagebreak
+
+\noindent
+Q.6 {\bf (25 points)}
+FactoryX uses one or more {\em machines} to manufacture {\em items}. 
+In order to save on storage costs, an item is manufactured only when there is space in the warehouse.
+The warehouse has a capacity of $w$ units where $w \geq 1$. 
+Space is freed up in the warehouse whenever a {\em Consumer} buys the product. 
+The raw materials used by machines are provided by two independent sources, 
+MetalsInc and ChemicalsInc and are stored in the depot with capacity $d$. In order to manufacture 1 unit, FactoryX requires 2 units from MetalsInc and 3 units from ChemicalsInc. You can assume that
+$d \geq 5$.
+\\ \\
+{\bf There are some constraints which need to be met:}
+\begin{enumerate}
+\item FactoryX should not manufacture products if the warehouse is full.
+\item There should be at least 2 units from MetalsInc and 3 units from ChemicalsInc in the depot to manufacture a product.
+\item One type of raw material should not fill up the depot such that an item cannot be manufactured. For example, if the depot has a storage capacity of 10 units, then at any point in time, it should have at most 7 units from MetalsInc  or 8 units from Chemicals Inc.
+\end{enumerate}
+You do not have to worry about exceptions for this question.
+The program must guarantee all the constraints and deadlock-freedom. Do not worry about starvation-freedom.
+You must use Java Reentrant locks and condition variables. 
+Your program will be graded for correctness (18 pts) and efficiency (7 pts).
+
+{\small
+\begin{verbatim}
+import java.util.concurrent.locks.Condition; import java.util.concurrent.locks.ReentrantLock;
+
+// There are four types of threads that access this monitor object.
+// MetalsInc threads call receiveMetal() which adds one unit of metal
+// ChemicalsInc threads call receiveChemical() which adds one unit of chemical
+// Machine threads call manufacture() which produces one unit of the finished item
+// Consumer threads call getProduct() which consumes one finished item
+public class FactoryX extends Thread{
+
+    private int w;
+    private int d;
+    private int metal, chem; // metal and chemical stocks;
+    private int items; // stock of finished items
+    // declare your synchronization variables
+
+    
+
+
+
+
+
+
+
+
+    public FactoryX(int warehouse_capacity, int depot_capacity){ 
+
+
+
+
+
+
+
+
+
+
+    }
+
+    public void receiveMetal() throws InterruptedException{ 
+
+
+
+
+
+
+
+
+    }
+
+   public void receiveChemical() throws InterruptedException{
+
+
+
+
+
+
+
+
+
+
+    }
+
+
+   public void getProduct() throws InterruptedException{ // called by the consumer thread
+
+
+
+
+
+
+    }
+
+    
+    public void manufacture() throws InterruptedException{ 
+  // called by the machine thread. The method must call createItem();
+  // You can assume that createItem method exists.
+  // The method createItem creates one item from raw products. It does not
+  // update any variables -- you need to do that in this function.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+    }
+}
+\end{verbatim}}
+
+
+\end{document}
+
+
+

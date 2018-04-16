@@ -83,3 +83,14 @@ tem : 25
 tem : 25
 tem : 11
 emd : 25
+arg3 : 25
+dzc : 25
+jtk : 8
+jtk : 8
+xz : 25
+chang : 25
+chang : 25
+wal : 8
+jlw : 25
+jlw : 25
+xl : 25
