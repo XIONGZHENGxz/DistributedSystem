@@ -3,11 +3,16 @@ unzip "submissions.zip" -d "submissions"
 ##unzip all files
 zips=`find submissions -name "*.zip"`
 mkdir -p "test"
-
+eid=$1
+echo "grading..." $eid
 for z in $zips;
 do
 	name=${z%.zip}
 	echo $name
+	if [[ ! $name = *$eid* ]]
+	then 
+		continue
+	fi
 	mkdir -p $name
 	unzip $z -d $name
 	class=`find $name -name "*.java"`
@@ -47,13 +52,13 @@ do
 			sleep 0.5
 			if [ ! -f diff.txt ]
 			then
-				echo "success" 
+				echo "test $i success" 
 				score=$((score+6))
 			else 
-				echo "fail"
-				cd ..
+				echo "test $i fail"
 				cp "out_1.txt" "$name/test1_out.txt"
 				cp "expected_out.txt" $name
+				cd ..
 				rm "diff.txt"
 				cd "test"
 			fi
@@ -81,14 +86,13 @@ do
 			sleep 0.5
 			if [ ! -f diff.txt ]
 			then
-				echo "success"
+				echo "test 6 success"
 				score=$((score+6))
 			else
 				echo "fail"
-				cd ..
+				cp "inventory.txt" $name
 				cp "expected_inventory.txt" $name
 				rm "diff.txt"
-				cd "test"
 			fi
 		fi
 		rm *.txt
